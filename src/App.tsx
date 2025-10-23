@@ -1,11 +1,14 @@
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+
 import "./App.css";
 
-function App() {
+export const App = () => {
   return (
     <>
-      <div>Hello</div>
+      <div className="container">
+        <img src="/banner.png" alt="Foundry" className="banner" />
+        <ConnectButton />
+      </div>
     </>
   );
-}
-
-export default App;
+};
