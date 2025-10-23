@@ -1,0 +1,252 @@
+/*
+  1. Prevent padding and border from affecting element width.
+  2. Remove default margins and padding.
+  3. Reset all borders.
+*/
+*,
+::after,
+::before,
+::backdrop,
+::file-selector-button {
+  box-sizing: border-box; /* 1 */
+  margin: 0; /* 2 */
+  padding: 0; /* 2 */
+  border: 0 solid; /* 3 */
+}
+
+/*
+  1. Sensible line-height.
+  2. Prevent font size adjust on orientation change.
+  3. Consistent tab size.
+  4. Use a system sans font stack.
+  5. Disable iOS tap highlight.
+*/
+html,
+:host {
+  line-height: 1.5; /* 1 */
+  -webkit-text-size-adjust: 100%; /* 2 */
+  tab-size: 4; /* 3 */
+  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; /* 4 */
+  -webkit-tap-highlight-color: transparent; /* 5 */
+}
+
+/* baseline font rendering */
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* hr baseline style */
+hr {
+  height: 0;
+  color: inherit;
+  border-top-width: 1px;
+}
+
+/* abbr dotted underline for [title] */
+abbr:where([title]) {
+  -webkit-text-decoration: underline dotted;
+  text-decoration: underline dotted;
+}
+
+/* Remove heading defaults */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* Neutral link styles */
+a {
+  color: inherit;
+  -webkit-text-decoration: inherit;
+  text-decoration: inherit;
+}
+
+/* Bold styles */
+b,
+strong {
+  font-weight: bolder;
+}
+
+/* Monospace elements */
+code,
+kbd,
+samp,
+pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 1em;
+}
+
+/* Small text */
+small {
+  font-size: 80%;
+}
+
+/* Sub/sup alignment */
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+sub {
+  bottom: -0.25em;
+}
+sup {
+  top: -0.5em;
+}
+
+/* Table baseline reset */
+table {
+  text-indent: 0;
+  border-color: inherit;
+  border-collapse: collapse;
+}
+
+/* Firefox focus style */
+:-moz-focusring {
+  outline: auto;
+}
+
+/* Progress baseline alignment */
+progress {
+  vertical-align: baseline;
+}
+
+/* Summary list style */
+summary {
+  display: list-item;
+}
+
+/* List reset */
+ol,
+ul,
+menu {
+  list-style: none;
+}
+
+/* Replaced elements block display */
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  display: block;
+}
+
+/* Media responsive sizing */
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Form elements inherit font and style */
+button,
+input,
+select,
+optgroup,
+textarea,
+::file-selector-button {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  border-radius: 0;
+  background-color: transparent;
+  opacity: 1;
+}
+
+/* Optgroup font weight for multi/select */
+:where(select:is([multiple], [size])) optgroup {
+  font-weight: bolder;
+}
+
+/* Indent options under optgroup */
+:where(select:is([multiple], [size])) optgroup option {
+  padding-inline-start: 20px;
+}
+
+/* File selector button spacing */
+::file-selector-button {
+  margin-inline-end: 4px;
+}
+
+/* Placeholder opacity reset */
+::placeholder {
+  opacity: 1;
+}
+
+/* Modern placeholder color in supported browsers */
+@supports (not (-webkit-appearance: -apple-pay-button)) or
+  (contain-intrinsic-size: 1px) {
+  ::placeholder {
+    color: color-mix(in oklab, currentcolor 50%, transparent);
+  }
+}
+
+/* Textarea resize control */
+textarea {
+  resize: vertical;
+}
+
+/* Remove macOS search padding */
+::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+/* iOS Safari date/time consistency */
+::-webkit-date-and-time-value {
+  min-height: 1lh;
+  text-align: inherit;
+}
+::-webkit-datetime-edit {
+  display: inline-flex;
+}
+::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+::-webkit-datetime-edit,
+::-webkit-datetime-edit-year-field,
+::-webkit-datetime-edit-month-field,
+::-webkit-datetime-edit-day-field,
+::-webkit-datetime-edit-hour-field,
+::-webkit-datetime-edit-minute-field,
+::-webkit-datetime-edit-second-field,
+::-webkit-datetime-edit-millisecond-field,
+::-webkit-datetime-edit-meridiem-field {
+  padding-block: 0;
+}
+
+/* Remove Firefox invalid shadow */
+:-moz-ui-invalid {
+  box-shadow: none;
+}
+
+/* Button style normalization in iOS Safari */
+button,
+input:where([type="button"], [type="reset"], [type="submit"]),
+::file-selector-button {
+  appearance: button;
+}
+
+/* Safari spin button fix */
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height: auto;
+}
+
+/* Hidden attribute respect */
+[hidden]:where(:not([hidden="until-found"])) {
+  display: none !important;
+}
