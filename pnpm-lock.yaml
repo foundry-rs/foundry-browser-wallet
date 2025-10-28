@@ -42,9 +42,6 @@ importers:
       '@vitejs/plugin-react-swc':
         specifier: ^4.1.0
         version: 4.1.0(rolldown-vite@7.1.14(@types/node@24.9.1))
-      globals:
-        specifier: ^16.4.0
-        version: 16.4.0
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -470,10 +467,6 @@ packages:
   get-proto@1.0.1:
     resolution: {integrity: sha512-sTSfBjoXBp89JvIKIefqw7U2CCebsc74kiY6awiGogKtoSGbgjYE/G/+l9sF3MWFPNc9IcoOC4ODfKHfxFmp0g==}
     engines: {node: '>= 0.4'}
-
-  globals@16.4.0:
-    resolution: {integrity: sha512-ob/2LcVVaVGCYN+r14cnwnoDPUufjiYgSqRhiFD0Q1iI4Odora5RE8Iv1D24hAz5oMophRGkGz+yuvQmmUMnMw==}
-    engines: {node: '>=18'}
 
   gopd@1.2.0:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
@@ -1147,8 +1140,6 @@ snapshots:
     dependencies:
       dunder-proto: 1.0.1
       es-object-atoms: 1.1.1
-
-  globals@16.4.0: {}
 
   gopd@1.2.0: {}
 
