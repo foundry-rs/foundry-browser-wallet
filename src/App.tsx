@@ -10,7 +10,7 @@ import type { EIP6963ProviderInfo, EIP1193, AnnounceEvent } from "./types.ts";
 
 declare global {
   interface Window {
-    __PORTO__?: Porto;
+    __PORTO__?: any;
   }
 }
 const ALL_CHAINS: Chain[] = Object.values(chains) as Chain[];
