@@ -74,12 +74,13 @@ export function App() {
     if (!selected) return;
 
     const onAccountsChanged = (accounts: readonly string[]) =>
-      setAccount((accounts?.[0] as Address | undefined) || undefined);
+      setAccount(accounts?.[0] as Address | undefined);
 
     const onChainChanged = (hex: string) => {
       const id = Number.parseInt(hex, 16);
-      setChainId(Number.isFinite(id) ? id : undefined);
-      setChain(Number.isFinite(id) ? byId(id) : undefined);
+      const validId = Number.isFinite(id) ? id : undefined;
+      setChainId(validId);
+      setChain(validId ? byId(validId) : undefined);
     };
 
     selected.provider.on?.("accountsChanged", onAccountsChanged);
