@@ -60,7 +60,7 @@ jobs:
           path: dist
 
   codeql:
-    name: Analyze (${{ matrix.language }})
+    name: analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
     permissions:
       security-events: write
