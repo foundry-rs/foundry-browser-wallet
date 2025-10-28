@@ -8,13 +8,7 @@ import { Porto } from "porto";
 
 import type { EIP6963ProviderInfo, EIP1193, AnnounceEvent } from "./types.ts";
 
-const ALL_CHAINS: Chain[] = Object.values(chains).filter(
-  (c: any) =>
-    typeof c === "object" &&
-    c !== null &&
-    "id" in c &&
-    typeof (c as any).id === "number"
-);
+const ALL_CHAINS: Chain[] = Object.values(chains) as Chain[];
 const byId = (id: number) => ALL_CHAINS.find((c) => c.id === id);
 
 export function App() {
