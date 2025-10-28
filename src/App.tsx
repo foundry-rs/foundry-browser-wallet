@@ -1,24 +1,17 @@
 import "./App.css";
 
-import { useEffect, useMemo, useState } from "react";
-import { createWalletClient, custom, type Address, type Chain } from "viem";
-import { getAddresses, requestAddresses } from "viem/actions";
-import * as chains from "viem/chains";
 import { Porto } from "porto";
-
-import type { EIP6963ProviderInfo, EIP1193, AnnounceEvent } from "./types.ts";
+import { useEffect, useMemo, useState } from "react";
+import { type Address, type Chain, createWalletClient, custom } from "viem";
+import { getAddresses, requestAddresses } from "viem/actions";
+import { applyChainId } from "./helpers.ts";
+import type { AnnounceEvent, EIP1193, EIP6963ProviderInfo } from "./types.ts";
 
 declare global {
   interface Window {
-    __PORTO__?: any;
+    __PORTO__?: unknown;
   }
 }
-
-const ALL_CHAINS: readonly Chain[] = Object.freeze(
-  Object.values(chains) as Chain[]
-);
-
-const byId = (id: number) => ALL_CHAINS.find((c) => c.id === id);
 
 export function App() {
   useEffect(() => {
@@ -27,32 +20,24 @@ export function App() {
     }
   }, []);
 
-  const [providers, setProviders] = useState<
-    { info: EIP6963ProviderInfo; provider: EIP1193 }[]
-  >([]);
+  const [providers, setProviders] = useState<{ info: EIP6963ProviderInfo; provider: EIP1193 }[]>(
+    [],
+  );
 
   useEffect(() => {
     const onAnnounce = (e: Event) => {
       const ev = e as AnnounceEvent;
       const { info, provider } = ev.detail;
       setProviders((prev) =>
-        prev.some((p) => p.info.uuid === info.uuid)
-          ? prev
-          : [...prev, { info, provider }]
+        prev.some((p) => p.info.uuid === info.uuid) ? prev : [...prev, { info, provider }],
       );
     };
 
-    window.addEventListener(
-      "eip6963:announceProvider",
-      onAnnounce as EventListener
-    );
+    window.addEventListener("eip6963:announceProvider", onAnnounce as EventListener);
     window.dispatchEvent(new Event("eip6963:requestProvider"));
 
     return () => {
-      window.removeEventListener(
-        "eip6963:announceProvider",
-        onAnnounce as EventListener
-      );
+      window.removeEventListener("eip6963:announceProvider", onAnnounce as EventListener);
     };
   }, []);
 
@@ -77,19 +62,17 @@ export function App() {
             transport: custom(selected.provider),
           })
         : undefined,
-    [selected, chain]
+    [selected, chain],
   );
 
   useEffect(() => {
     if (!selected) return;
 
-    const onAccountsChanged = (accounts: string[]) =>
-      setAccount((accounts?.[0] as Address) || undefined);
+    const onAccountsChanged = (accounts: readonly string[]) =>
+      setAccount(accounts?.[0] as Address | undefined);
 
-    const onChainChanged = (hex: string) => {
-      const id = parseInt(hex, 16);
-      setChainId(id);
-      setChain(byId(id));
+    const onChainChanged = (raw: unknown) => {
+      applyChainId(raw, setChainId, setChain);
     };
 
     selected.provider.on?.("accountsChanged", onAccountsChanged);
@@ -106,10 +89,8 @@ export function App() {
       if (!selected) return;
 
       try {
-        const hex = await selected.provider.request({ method: "eth_chainId" });
-        const id = parseInt(hex as string, 16);
-        setChainId(id);
-        setChain(byId(id));
+        const raw = await selected.provider.request({ method: "eth_chainId" });
+        applyChainId(raw, setChainId, setChain);
       } catch {
         setChainId(undefined);
         setChain(undefined);
@@ -128,19 +109,22 @@ export function App() {
 
   const connect = async () => {
     if (!walletClient || !selected) return;
-    const addrs = await requestAddresses(walletClient);
-    setAccount(addrs[0] as Address);
+    const addrs = (await requestAddresses(walletClient)) as readonly Address[];
+    setAccount(addrs[0] as Address | undefined);
 
     try {
-      const hex = await selected.provider.request({ method: "eth_chainId" });
-      const id = parseInt(hex as string, 16);
-      setChainId(id);
-      setChain(byId(id));
-    } catch {}
+      const raw = await selected.provider.request({ method: "eth_chainId" });
+      applyChainId(raw, setChainId, setChain);
+    } catch {
+      setChainId(undefined);
+      setChain(undefined);
+    }
   };
 
   const disconnect = async () => {
     setAccount(undefined);
+    setChainId(undefined);
+    setChain(undefined);
 
     try {
       await walletClient?.transport.request({
@@ -179,29 +163,24 @@ export function App() {
       {selected && account && (
         <pre className="info">
           {`\
-chain:  ${chain ? `${chain.name} (${chainId})` : chainId ?? "unknown"}
-rpc:    ${
-            chain?.rpcUrls?.default?.http?.[0] ??
-            chain?.rpcUrls?.public?.http?.[0] ??
-            "unknown"
-          }`}
+chain:  ${chain ? `${chain.name} (${chainId})` : (chainId ?? "unknown")}
+rpc:    ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[0] ?? "unknown"}`}
         </pre>
       )}
 
-      {selected && (
-        <>
-          {account ? (
-            <>
-              <div className="output">Connected: {account}</div>
-              <button className="disconnect" onClick={disconnect}>
-                Disconnect
-              </button>
-            </>
-          ) : (
-            <button onClick={connect}>Connect Wallet</button>
-          )}
-        </>
-      )}
+      {selected &&
+        (account ? (
+          <>
+            <div className="output">Connected: {account}</div>
+            <button type="button" className="disconnect" onClick={disconnect}>
+              Disconnect
+            </button>
+          </>
+        ) : (
+          <button type="button" onClick={connect}>
+            Connect Wallet
+          </button>
+        ))}
     </div>
   );
 }
