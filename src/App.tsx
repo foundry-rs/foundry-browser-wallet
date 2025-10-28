@@ -13,7 +13,11 @@ declare global {
     __PORTO__?: any;
   }
 }
-const ALL_CHAINS: Chain[] = Object.values(chains) as Chain[];
+
+const ALL_CHAINS: readonly Chain[] = Object.freeze(
+  Object.values(chains) as Chain[]
+);
+
 const byId = (id: number) => ALL_CHAINS.find((c) => c.id === id);
 
 export function App() {
