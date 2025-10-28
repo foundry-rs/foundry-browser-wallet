@@ -11,7 +11,7 @@ export default defineConfig({
       generateBundle(_, bundle) {
         for (const file of Object.values(bundle)) {
           if (file.type === "chunk" && file.fileName === "main.js") {
-            file.code = "/** SESSION_TOKEN */\n" + file.code;
+            file.code = "/** SESSION_TOKEN */\n\n" + file.code;
           }
         }
       },

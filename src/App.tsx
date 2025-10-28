@@ -1,116 +1,114 @@
 import "./App.css";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createWalletClient, custom, type Address, type Chain } from "viem";
 import { getAddresses, requestAddresses } from "viem/actions";
-import {
-  mainnet,
-  sepolia,
-  base,
-  baseSepolia,
-  optimism,
-  optimismSepolia,
-  arbitrum,
-  arbitrumSepolia,
-  polygon,
-} from "viem/chains";
-import "viem/window";
+import * as chains from "viem/chains";
 import { Porto } from "porto";
 
-type WalletKind = "injected" | "porto";
+import type { EIP6963ProviderInfo, EIP1193, AnnounceEvent } from "./types.ts";
 
-// Known chains for naming/config if we recognize the id
-const CHAINS: Chain[] = [
-  mainnet,
-  sepolia,
-  base,
-  baseSepolia,
-  optimism,
-  optimismSepolia,
-  arbitrum,
-  arbitrumSepolia,
-  polygon,
-];
+const ALL_CHAINS: Chain[] = Object.values(chains).filter(
+  (c: any) =>
+    typeof c === "object" &&
+    c !== null &&
+    "id" in c &&
+    typeof (c as any).id === "number"
+);
+const byId = (id: number) => ALL_CHAINS.find((c) => c.id === id);
 
-const byId = (id: number) => CHAINS.find((c) => c.id === id);
-
-export const App = () => {
-  const injectedProvider =
-    (typeof window !== "undefined" ? (window as any).ethereum : undefined) ||
-    undefined;
-
-  const portoRef = useRef<any>(null);
-  const portoProvider = useMemo(() => {
-    try {
-      if (!portoRef.current) portoRef.current = Porto.create();
-      return portoRef.current.provider;
-    } catch {
-      return undefined;
+export function App() {
+  useEffect(() => {
+    if (!(window as any).__PORTO__) {
+      (window as any).__PORTO__ = Porto.create();
     }
   }, []);
 
-  const [walletKind, setWalletKind] = useState<WalletKind>(
-    injectedProvider ? "injected" : "porto"
-  );
-  const provider = walletKind === "injected" ? injectedProvider : portoProvider;
+  const [providers, setProviders] = useState<
+    { info: EIP6963ProviderInfo; provider: EIP1193 }[]
+  >([]);
 
-  const [walletChainId, setWalletChainId] = useState<number | undefined>(
-    undefined
-  );
-  const [walletChain, setWalletChain] = useState<Chain | undefined>(undefined);
+  useEffect(() => {
+    const onAnnounce = (e: Event) => {
+      const ev = e as AnnounceEvent;
+      const { info, provider } = ev.detail;
+      setProviders((prev) =>
+        prev.some((p) => p.info.uuid === info.uuid)
+          ? prev
+          : [...prev, { info, provider }]
+      );
+    };
+
+    window.addEventListener(
+      "eip6963:announceProvider",
+      onAnnounce as EventListener
+    );
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+    return () => {
+      window.removeEventListener(
+        "eip6963:announceProvider",
+        onAnnounce as EventListener
+      );
+    };
+  }, []);
+
+  const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
+  useEffect(() => {
+    if (providers.length === 1 && !selectedUuid) {
+      setSelectedUuid(providers[0].info.uuid);
+    }
+  }, [providers, selectedUuid]);
+
+  const selected = providers.find((p) => p.info.uuid === selectedUuid) ?? null;
+
+  const [account, setAccount] = useState<Address>();
+  const [chainId, setChainId] = useState<number>();
+  const [chain, setChain] = useState<Chain>();
 
   const walletClient = useMemo(
     () =>
-      provider
+      selected
         ? createWalletClient({
-            chain: walletChain,
-            transport: custom(provider),
+            chain,
+            transport: custom(selected.provider),
           })
         : undefined,
-    [provider, walletChain]
+    [selected, chain]
   );
 
-  const [account, setAccount] = useState<Address>();
-
   useEffect(() => {
-    if (!provider) {
-      setAccount(undefined);
-      setWalletChainId(undefined);
-      setWalletChain(undefined);
-      return;
-    }
+    if (!selected) return;
 
-    const onAccountsChanged = (accts: string[]) => {
+    const onAccountsChanged = (accts: string[]) =>
       setAccount((accts?.[0] as Address) || undefined);
-    };
 
     const onChainChanged = (hex: string) => {
       const id = parseInt(hex, 16);
-      setWalletChainId(id);
-      setWalletChain(byId(id));
+      setChainId(id);
+      setChain(byId(id));
     };
 
-    provider.on?.("accountsChanged", onAccountsChanged);
-    provider.on?.("chainChanged", onChainChanged);
-
+    selected.provider.on?.("accountsChanged", onAccountsChanged);
+    selected.provider.on?.("chainChanged", onChainChanged);
     return () => {
-      provider.removeListener?.("accountsChanged", onAccountsChanged);
-      provider.removeListener?.("chainChanged", onChainChanged);
+      selected.provider.removeListener?.("accountsChanged", onAccountsChanged);
+      selected.provider.removeListener?.("chainChanged", onChainChanged);
     };
-  }, [provider]);
+  }, [selected]);
 
   useEffect(() => {
     (async () => {
-      if (!provider) return;
+      if (!selected) return;
 
       try {
-        const hex = await provider.request({ method: "eth_chainId" });
+        const hex = await selected.provider.request({ method: "eth_chainId" });
         const id = parseInt(hex as string, 16);
-        setWalletChainId(id);
-        setWalletChain(byId(id));
+        setChainId(id);
+        setChain(byId(id));
       } catch {
-        setWalletChainId(undefined);
-        setWalletChain(undefined);
+        setChainId(undefined);
+        setChain(undefined);
       }
 
       if (walletClient) {
@@ -122,25 +120,23 @@ export const App = () => {
         }
       }
     })();
-  }, [provider, walletClient]);
+  }, [selected, walletClient]);
 
   const connect = async () => {
-    if (!walletClient) return;
-
+    if (!walletClient || !selected) return;
     const addrs = await requestAddresses(walletClient);
     setAccount(addrs[0] as Address);
 
     try {
-      const hex = await provider!.request({ method: "eth_chainId" });
+      const hex = await selected.provider.request({ method: "eth_chainId" });
       const id = parseInt(hex as string, 16);
-      setWalletChainId(id);
-      setWalletChain(byId(id));
+      setChainId(id);
+      setChain(byId(id));
     } catch {}
   };
 
   const disconnect = async () => {
     setAccount(undefined);
-
     try {
       await walletClient?.transport.request({
         method: "wallet_revokePermissions",
@@ -149,52 +145,68 @@ export const App = () => {
     } catch {}
   };
 
-  const injectedAvailable = !!injectedProvider;
-  const portoAvailable = !!portoProvider;
-  const providerAvailable = !!provider;
-
   return (
     <div className="container">
       <h1>Foundry</h1>
 
-      <label style={{ display: "block", marginBottom: 8 }}>
-        Wallet:&nbsp;
-        <select
-          value={walletKind}
-          onChange={(e) => setWalletKind(e.target.value as WalletKind)}
-        >
-          <option value="injected" disabled={!injectedAvailable}>
-            Injected {injectedAvailable ? "" : "(not detected)"}
-          </option>
-          <option value="porto" disabled={!portoAvailable}>
-            Porto {portoAvailable ? "" : "(unavailable)"}
-          </option>
-        </select>
-      </label>
-
-      {account && (
-        <div style={{ marginBottom: 12 }}>
-          Wallet chain:{" "}
-          <b>
-            {walletChain
-              ? `${walletChain.name} (${walletChainId ?? "unknown"})`
-              : ""}
-          </b>
+      {providers.length > 1 && (
+        <div style={{ marginBottom: 8 }}>
+          <label>
+            Wallet:&nbsp;
+            <select
+              value={selectedUuid ?? ""}
+              onChange={(e) => setSelectedUuid(e.target.value || null)}
+            >
+              <option value="" disabled>
+                Select wallet…
+              </option>
+              {providers.map(({ info }) => (
+                <option key={info.uuid} value={info.uuid}>
+                  {info.name} ({info.rdns})
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       )}
 
-      {account ? (
+      {providers.length === 0 && <p>No EIP-6963 wallets found.</p>}
+
+      {selected && account && (
+        <pre
+          style={{
+            border: "1px solid #e1e4e8",
+            borderRadius: 6,
+            padding: "8px 12px",
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            fontSize: 13,
+            lineHeight: 1.5,
+            marginBottom: 16,
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {`\
+chain:  ${chain ? `${chain.name} (${chainId})` : chainId ?? "unknown"}
+rpc:    ${
+            chain?.rpcUrls?.default?.http?.[0] ??
+            chain?.rpcUrls?.public?.http?.[0] ??
+            "unknown"
+          }`}
+        </pre>
+      )}
+
+      {selected && (
         <>
-          <div style={{ marginBottom: 8 }}>Connected: {account}</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={disconnect}>Disconnect</button>
-          </div>
+          {account ? (
+            <>
+              <div style={{ marginBottom: 8 }}>Connected: {account}</div>
+              <button onClick={disconnect}>Disconnect</button>
+            </>
+          ) : (
+            <button onClick={connect}>Connect Wallet</button>
+          )}
         </>
-      ) : (
-        <button onClick={connect} disabled={!providerAvailable}>
-          {providerAvailable ? "Connect Wallet" : "No Provider Available"}
-        </button>
       )}
     </div>
   );
-};
+}
