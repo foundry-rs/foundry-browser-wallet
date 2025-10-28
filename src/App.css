@@ -6,36 +6,20 @@
   min-height: 100vh;
 }
 
-h1 {
-  margin-bottom: 24px;
+.title {
   font-size: 36px;
   color: #f8f8f8;
+  margin-bottom: 24px;
 }
 
-select {
-  margin-left: 8px;
-  padding: 4px;
-  border-radius: 4px;
-  border: 1px solid #444;
-  background-color: #1e2026;
-  color: #f8f8f8;
-}
-
-option {
-  background-color: #1e2026;
-  color: #f8f8f8;
-}
-
-button {
+.info {
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
   padding: 8px 12px;
-  margin-top: 24px;
-  border: none;
-  border-radius: 4px;
-  background-color: #3a3f51;
-  color: #f8f8f8;
-  cursor: pointer;
+  font-size: 13px;
+  margin-bottom: 16px;
 }
 
-button:hover {
-  background-color: #50566e;
+.disconnect {
+  margin-top: 16px;
 }

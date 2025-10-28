@@ -147,12 +147,11 @@ export function App() {
 
   return (
     <div className="container">
-      <h1>Foundry</h1>
+      <h1 className="title">Foundry</h1>
 
       {providers.length > 1 && (
-        <div style={{ marginBottom: 8 }}>
+        <div>
           <label>
-            Wallet:&nbsp;
             <select
               value={selectedUuid ?? ""}
               onChange={(e) => setSelectedUuid(e.target.value || null)}
@@ -170,21 +169,10 @@ export function App() {
         </div>
       )}
 
-      {providers.length === 0 && <p>No EIP-6963 wallets found.</p>}
+      {providers.length === 0 && <p>No wallets found.</p>}
 
       {selected && account && (
-        <pre
-          style={{
-            border: "1px solid #e1e4e8",
-            borderRadius: 6,
-            padding: "8px 12px",
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-            fontSize: 13,
-            lineHeight: 1.5,
-            marginBottom: 16,
-            whiteSpace: "pre-wrap",
-          }}
-        >
+        <pre className="info">
           {`\
 chain:  ${chain ? `${chain.name} (${chainId})` : chainId ?? "unknown"}
 rpc:    ${
@@ -199,8 +187,10 @@ rpc:    ${
         <>
           {account ? (
             <>
-              <div style={{ marginBottom: 8 }}>Connected: {account}</div>
-              <button onClick={disconnect}>Disconnect</button>
+              <div className="output">Connected: {account}</div>
+              <button className="disconnect" onClick={disconnect}>
+                Disconnect
+              </button>
             </>
           ) : (
             <button onClick={connect}>Connect Wallet</button>
