@@ -18,14 +18,8 @@ export interface EIP1193 {
     method: string;
     params?: readonly unknown[] | Record<string, unknown>;
   }): Promise<T>;
-  on?<K extends keyof EIP1193Events>(
-    event: K,
-    listener: EIP1193Events[K]
-  ): void;
-  removeListener?<K extends keyof EIP1193Events>(
-    event: K,
-    listener: EIP1193Events[K]
-  ): void;
+  on?<K extends keyof EIP1193Events>(event: K, listener: EIP1193Events[K]): void;
+  removeListener?<K extends keyof EIP1193Events>(event: K, listener: EIP1193Events[K]): void;
 }
 
 export type EIP6963ProviderDetail = {
@@ -33,8 +27,7 @@ export type EIP6963ProviderDetail = {
   provider: EIP1193;
 };
 
-export interface EIP6963AnnounceProviderEvent
-  extends CustomEvent<EIP6963ProviderDetail> {
+export interface EIP6963AnnounceProviderEvent extends CustomEvent<EIP6963ProviderDetail> {
   type: "eip6963:announceProvider";
 }
 

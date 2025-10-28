@@ -5,11 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { type Address, type Chain, createWalletClient, custom } from "viem";
 import { getAddresses, requestAddresses } from "viem/actions";
 import { applyChainId } from "./utils/helpers.ts";
-import type {
-  EIP1193,
-  EIP6963AnnounceProviderEvent,
-  EIP6963ProviderInfo,
-} from "./utils/types.ts";
+import type { EIP1193, EIP6963AnnounceProviderEvent, EIP6963ProviderInfo } from "./utils/types.ts";
 
 declare global {
   interface Window {
@@ -24,18 +20,16 @@ export function App() {
     }
   }, []);
 
-  const [providers, setProviders] = useState<
-    { info: EIP6963ProviderInfo; provider: EIP1193 }[]
-  >([]);
+  const [providers, setProviders] = useState<{ info: EIP6963ProviderInfo; provider: EIP1193 }[]>(
+    [],
+  );
 
   useEffect(() => {
     const onAnnounce = (ev: EIP6963AnnounceProviderEvent) => {
       const { info, provider } = ev.detail;
 
       setProviders((prev) =>
-        prev.some((p) => p.info.uuid === info.uuid)
-          ? prev
-          : [...prev, { info, provider }]
+        prev.some((p) => p.info.uuid === info.uuid) ? prev : [...prev, { info, provider }],
       );
     };
 
@@ -61,7 +55,7 @@ export function App() {
             transport: custom(selected.provider),
           })
         : undefined,
-    [selected]
+    [selected],
   );
 
   useEffect(() => {
@@ -153,12 +147,8 @@ export function App() {
       {selected && account && (
         <pre className="info">
           {`\
-chain:  ${chain ? `${chain.name} (${chainId})` : chainId ?? "unknown"}
-rpc:    ${
-            chain?.rpcUrls?.default?.http?.[0] ??
-            chain?.rpcUrls?.public?.http?.[0] ??
-            "unknown"
-          }`}
+chain:  ${chain ? `${chain.name} (${chainId})` : (chainId ?? "unknown")}
+rpc:    ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[0] ?? "unknown"}`}
         </pre>
       )}
 
