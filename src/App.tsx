@@ -8,13 +8,18 @@ import { Porto } from "porto";
 
 import type { EIP6963ProviderInfo, EIP1193, AnnounceEvent } from "./types.ts";
 
+declare global {
+  interface Window {
+    __PORTO__?: Porto;
+  }
+}
 const ALL_CHAINS: Chain[] = Object.values(chains) as Chain[];
 const byId = (id: number) => ALL_CHAINS.find((c) => c.id === id);
 
 export function App() {
   useEffect(() => {
-    if (!(window as any).__PORTO__) {
-      (window as any).__PORTO__ = Porto.create();
+    if (!window.__PORTO__) {
+      window.__PORTO__ = Porto.create();
     }
   }, []);
 
