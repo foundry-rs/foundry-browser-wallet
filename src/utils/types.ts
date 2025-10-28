@@ -31,8 +31,6 @@ export interface EIP6963AnnounceProviderEvent extends CustomEvent<EIP6963Provide
   type: "eip6963:announceProvider";
 }
 
-export type AnnounceEvent = EIP6963AnnounceProviderEvent;
-
 declare global {
   interface WindowEventMap {
     "eip6963:announceProvider": EIP6963AnnounceProviderEvent;
