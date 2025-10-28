@@ -10,7 +10,8 @@
     "fmt:check": "biome format .",
     "lint": "biome check . --write --unsafe",
     "lint:check": "biome check .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepare": "husky"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.5",
