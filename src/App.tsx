@@ -1,11 +1,15 @@
-import "./App.css";
+import "./styles/App.css";
 
 import { Porto } from "porto";
 import { useEffect, useMemo, useState } from "react";
 import { type Address, type Chain, createWalletClient, custom } from "viem";
 import { getAddresses, requestAddresses } from "viem/actions";
-import { applyChainId } from "./helpers.ts";
-import type { AnnounceEvent, EIP1193, EIP6963ProviderInfo } from "./types.ts";
+import { applyChainId } from "./utils/helpers.ts";
+import type {
+  EIP1193,
+  EIP6963AnnounceProviderEvent,
+  EIP6963ProviderInfo,
+} from "./utils/types.ts";
 
 declare global {
   interface Window {
@@ -20,34 +24,30 @@ export function App() {
     }
   }, []);
 
-  const [providers, setProviders] = useState<{ info: EIP6963ProviderInfo; provider: EIP1193 }[]>(
-    [],
-  );
+  const [providers, setProviders] = useState<
+    { info: EIP6963ProviderInfo; provider: EIP1193 }[]
+  >([]);
 
   useEffect(() => {
-    const onAnnounce = (e: Event) => {
-      const ev = e as AnnounceEvent;
+    const onAnnounce = (ev: EIP6963AnnounceProviderEvent) => {
       const { info, provider } = ev.detail;
+
       setProviders((prev) =>
-        prev.some((p) => p.info.uuid === info.uuid) ? prev : [...prev, { info, provider }],
+        prev.some((p) => p.info.uuid === info.uuid)
+          ? prev
+          : [...prev, { info, provider }]
       );
     };
 
-    window.addEventListener("eip6963:announceProvider", onAnnounce as EventListener);
+    window.addEventListener("eip6963:announceProvider", onAnnounce);
     window.dispatchEvent(new Event("eip6963:requestProvider"));
 
     return () => {
-      window.removeEventListener("eip6963:announceProvider", onAnnounce as EventListener);
+      window.removeEventListener("eip6963:announceProvider", onAnnounce);
     };
   }, []);
 
   const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
-  useEffect(() => {
-    if (providers.length === 1 && !selectedUuid) {
-      setSelectedUuid(providers[0].info.uuid);
-    }
-  }, [providers, selectedUuid]);
-
   const selected = providers.find((p) => p.info.uuid === selectedUuid) ?? null;
 
   const [account, setAccount] = useState<Address>();
@@ -58,18 +58,17 @@ export function App() {
     () =>
       selected
         ? createWalletClient({
-            chain,
             transport: custom(selected.provider),
           })
         : undefined,
-    [selected, chain],
+    [selected]
   );
 
   useEffect(() => {
     if (!selected) return;
 
     const onAccountsChanged = (accounts: readonly string[]) =>
-      setAccount(accounts?.[0] as Address | undefined);
+      setAccount((accounts[0] as Address) ?? undefined);
 
     const onChainChanged = (raw: unknown) => {
       applyChainId(raw, setChainId, setChain);
@@ -89,7 +88,9 @@ export function App() {
       if (!selected) return;
 
       try {
-        const raw = await selected.provider.request({ method: "eth_chainId" });
+        const raw = await selected.provider.request<string>({
+          method: "eth_chainId",
+        });
         applyChainId(raw, setChainId, setChain);
       } catch {
         setChainId(undefined);
@@ -113,25 +114,14 @@ export function App() {
     setAccount(addrs[0] as Address | undefined);
 
     try {
-      const raw = await selected.provider.request({ method: "eth_chainId" });
+      const raw = await selected.provider.request<string>({
+        method: "eth_chainId",
+      });
       applyChainId(raw, setChainId, setChain);
     } catch {
       setChainId(undefined);
       setChain(undefined);
     }
-  };
-
-  const disconnect = async () => {
-    setAccount(undefined);
-    setChainId(undefined);
-    setChain(undefined);
-
-    try {
-      await walletClient?.transport.request({
-        method: "wallet_revokePermissions",
-        params: [{ eth_accounts: {} }],
-      });
-    } catch {}
   };
 
   return (
@@ -163,24 +153,26 @@ export function App() {
       {selected && account && (
         <pre className="info">
           {`\
-chain:  ${chain ? `${chain.name} (${chainId})` : (chainId ?? "unknown")}
-rpc:    ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[0] ?? "unknown"}`}
+chain:  ${chain ? `${chain.name} (${chainId})` : chainId ?? "unknown"}
+rpc:    ${
+            chain?.rpcUrls?.default?.http?.[0] ??
+            chain?.rpcUrls?.public?.http?.[0] ??
+            "unknown"
+          }`}
         </pre>
       )}
 
-      {selected &&
-        (account ? (
-          <>
-            <div className="output">Connected: {account}</div>
-            <button type="button" className="disconnect" onClick={disconnect}>
-              Disconnect
-            </button>
-          </>
+      {selected ? (
+        account ? (
+          <div className="output">Connected: {account}</div>
         ) : (
-          <button type="button" onClick={connect}>
+          <button type="button" className="connect" onClick={connect}>
             Connect Wallet
           </button>
-        ))}
+        )
+      ) : (
+        <p>Please select a wallet</p>
+      )}
     </div>
   );
 }
