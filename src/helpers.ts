@@ -1,9 +1,7 @@
-import * as chains from "viem/chains";
 import type { Chain } from "viem";
+import * as chains from "viem/chains";
 
-const ALL_CHAINS: readonly Chain[] = Object.freeze(
-  Object.values(chains) as Chain[]
-);
+const ALL_CHAINS: readonly Chain[] = Object.freeze(Object.values(chains) as Chain[]);
 
 const getChainById = (id: number) => ALL_CHAINS.find((c) => c.id === id);
 
@@ -32,7 +30,7 @@ const parseChainId = (input: unknown): number | undefined => {
 export const applyChainId = (
   raw: unknown,
   setChainId: (n: number | undefined) => void,
-  setChain: (c: Chain | undefined) => void
+  setChain: (c: Chain | undefined) => void,
 ) => {
   const id = parseChainId(raw);
   setChainId(id);

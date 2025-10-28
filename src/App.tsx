@@ -4,9 +4,8 @@ import { Porto } from "porto";
 import { useEffect, useMemo, useState } from "react";
 import { type Address, type Chain, createWalletClient, custom } from "viem";
 import { getAddresses, requestAddresses } from "viem/actions";
-
-import type { AnnounceEvent, EIP1193, EIP6963ProviderInfo } from "./types.ts";
 import { applyChainId } from "./helpers.ts";
+import type { AnnounceEvent, EIP1193, EIP6963ProviderInfo } from "./types.ts";
 
 declare global {
   interface Window {
@@ -21,32 +20,24 @@ export function App() {
     }
   }, []);
 
-  const [providers, setProviders] = useState<
-    { info: EIP6963ProviderInfo; provider: EIP1193 }[]
-  >([]);
+  const [providers, setProviders] = useState<{ info: EIP6963ProviderInfo; provider: EIP1193 }[]>(
+    [],
+  );
 
   useEffect(() => {
     const onAnnounce = (e: Event) => {
       const ev = e as AnnounceEvent;
       const { info, provider } = ev.detail;
       setProviders((prev) =>
-        prev.some((p) => p.info.uuid === info.uuid)
-          ? prev
-          : [...prev, { info, provider }]
+        prev.some((p) => p.info.uuid === info.uuid) ? prev : [...prev, { info, provider }],
       );
     };
 
-    window.addEventListener(
-      "eip6963:announceProvider",
-      onAnnounce as EventListener
-    );
+    window.addEventListener("eip6963:announceProvider", onAnnounce as EventListener);
     window.dispatchEvent(new Event("eip6963:requestProvider"));
 
     return () => {
-      window.removeEventListener(
-        "eip6963:announceProvider",
-        onAnnounce as EventListener
-      );
+      window.removeEventListener("eip6963:announceProvider", onAnnounce as EventListener);
     };
   }, []);
 
@@ -71,7 +62,7 @@ export function App() {
             transport: custom(selected.provider),
           })
         : undefined,
-    [selected, chain]
+    [selected, chain],
   );
 
   useEffect(() => {
@@ -172,12 +163,8 @@ export function App() {
       {selected && account && (
         <pre className="info">
           {`\
-chain:  ${chain ? `${chain.name} (${chainId})` : chainId ?? "unknown"}
-rpc:    ${
-            chain?.rpcUrls?.default?.http?.[0] ??
-            chain?.rpcUrls?.public?.http?.[0] ??
-            "unknown"
-          }`}
+chain:  ${chain ? `${chain.name} (${chainId})` : (chainId ?? "unknown")}
+rpc:    ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[0] ?? "unknown"}`}
         </pre>
       )}
 
