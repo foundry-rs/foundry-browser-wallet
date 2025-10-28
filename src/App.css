@@ -6,8 +6,20 @@
   min-height: 100vh;
 }
 
-.banner {
-  width: 100%;
-  margin: 0 auto 50px;
-  max-width: 800px;
+.title {
+  font-size: 36px;
+  color: #f8f8f8;
+  margin-bottom: 24px;
+}
+
+.info {
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.disconnect {
+  margin-top: 16px;
 }
