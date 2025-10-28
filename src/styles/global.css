@@ -1,11 +1,3 @@
-@font-face {
-  font-family: "Inter-Regular";
-  src: url("/Inter-Regular.woff2") format("woff2");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
 html,
 body,
 #root {
@@ -14,4 +6,5 @@ body,
   overflow: hidden;
   font-family: "Inter-Regular", sans-serif;
   background-color: #13151b;
+  color: #f8f8f8;
 }
