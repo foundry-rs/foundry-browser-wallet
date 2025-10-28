@@ -26,8 +26,9 @@ html,
   line-height: 1.5; /* 1 */
   -webkit-text-size-adjust: 100%; /* 2 */
   tab-size: 4; /* 3 */
-  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
-    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; /* 4 */
+  font-family:
+    ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+    "Noto Color Emoji"; /* 4 */
   -webkit-tap-highlight-color: transparent; /* 5 */
 }
 
@@ -79,8 +80,9 @@ code,
 kbd,
 samp,
 pre {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
   font-size: 1em;
 }
 
@@ -188,8 +190,7 @@ textarea,
 }
 
 /* Modern placeholder color in supported browsers */
-@supports (not (-webkit-appearance: -apple-pay-button)) or
-  (contain-intrinsic-size: 1px) {
+@supports (not (-webkit-appearance: -apple-pay-button)) or (contain-intrinsic-size: 1px) {
   ::placeholder {
     color: color-mix(in oklab, currentcolor 50%, transparent);
   }
@@ -248,5 +249,5 @@ input:where([type="button"], [type="reset"], [type="submit"]),
 
 /* Hidden attribute respect */
 [hidden]:where(:not([hidden="until-found"])) {
-  display: none !important;
+  display: none;
 }

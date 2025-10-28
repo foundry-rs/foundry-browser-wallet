@@ -5,13 +5,37 @@ export type EIP6963ProviderInfo = {
   rdns: string;
 };
 
-export type EIP1193 = {
-  request: (args: { method: string; params?: any[] | object }) => Promise<any>;
-  on?: (event: string, listener: (...args: any[]) => void) => void;
-  removeListener?: (event: string, listener: (...args: any[]) => void) => void;
+export type EIP1193Events = {
+  connect: (info: { chainId: string }) => void;
+  disconnect: (error: { code: number; message: string }) => void;
+  message: (message: { type: string; data: unknown }) => void;
+  chainChanged: (chainId: string) => void;
+  accountsChanged: (accounts: readonly string[]) => void;
 };
 
-export type AnnounceEvent = CustomEvent<{
+export interface EIP1193 {
+  request<T = unknown>(args: {
+    method: string;
+    params?: readonly unknown[] | Record<string, unknown>;
+  }): Promise<T>;
+  on?<K extends keyof EIP1193Events>(event: K, listener: EIP1193Events[K]): void;
+  removeListener?<K extends keyof EIP1193Events>(event: K, listener: EIP1193Events[K]): void;
+}
+
+export type EIP6963ProviderDetail = {
   info: EIP6963ProviderInfo;
   provider: EIP1193;
-}>;
+};
+
+export interface EIP6963AnnounceProviderEvent extends CustomEvent<EIP6963ProviderDetail> {
+  type: "eip6963:announceProvider";
+}
+
+export type AnnounceEvent = EIP6963AnnounceProviderEvent;
+
+declare global {
+  interface WindowEventMap {
+    "eip6963:announceProvider": EIP6963AnnounceProviderEvent;
+    "eip6963:requestProvider": Event;
+  }
+}
