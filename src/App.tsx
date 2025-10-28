@@ -74,8 +74,8 @@ export function App() {
   useEffect(() => {
     if (!selected) return;
 
-    const onAccountsChanged = (accts: string[]) =>
-      setAccount((accts?.[0] as Address) || undefined);
+    const onAccountsChanged = (accounts: string[]) =>
+      setAccount((accounts?.[0] as Address) || undefined);
 
     const onChainChanged = (hex: string) => {
       const id = parseInt(hex, 16);
@@ -85,6 +85,7 @@ export function App() {
 
     selected.provider.on?.("accountsChanged", onAccountsChanged);
     selected.provider.on?.("chainChanged", onChainChanged);
+
     return () => {
       selected.provider.removeListener?.("accountsChanged", onAccountsChanged);
       selected.provider.removeListener?.("chainChanged", onChainChanged);
@@ -131,6 +132,7 @@ export function App() {
 
   const disconnect = async () => {
     setAccount(undefined);
+
     try {
       await walletClient?.transport.request({
         method: "wallet_revokePermissions",
