@@ -327,8 +327,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
         )}
 
         {selected && account && lastTxHash && (
-          <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-            <div>
+            <>
               <div className="section-title">Transaction Hash</div>
               <pre className="box">{lastTxHash}</pre>
 
@@ -338,8 +337,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
                   {lastTxReceipt ? renderJSON(lastTxReceipt) : "Waiting for receipt..."}
                 </pre>
               </div>
-            </div>
-          </div>
+            </>
         )}
 
         {selected && account && pending && (
