@@ -37,3 +37,7 @@ declare global {
     "eip6963:requestProvider": Event;
   }
 }
+
+export type ApiOk<T> = { status: "ok"; data: T };
+export type ApiErr = { status: string; message?: string };
+export type PendingAny = Record<string, unknown> & { id: string };
