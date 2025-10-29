@@ -2,14 +2,15 @@ import "./styles/App.css";
 
 import { Porto } from "porto";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type Address, type Chain, createWalletClient, custom } from "viem";
-import { getAddresses, requestAddresses, waitForTransactionReceipt } from "viem/actions";
 import {
-  applyChainId,
-  ensureChainSelected,
-  readPendingChainId,
-  getChainById,
-} from "./utils/helpers.ts";
+  type Address,
+  type Chain,
+  createWalletClient,
+  custom,
+  type TransactionReceipt,
+} from "viem";
+import { getAddresses, requestAddresses, waitForTransactionReceipt } from "viem/actions";
+import { applyChainId, api, isOk, renderJSON } from "./utils/helpers.ts";
 import type {
   ApiErr,
   ApiOk,
@@ -18,7 +19,6 @@ import type {
   EIP6963ProviderInfo,
   PendingAny,
 } from "./utils/types.ts";
-import { api, pick, readAddr, renderJSON } from "./utils/api.ts";
 
 declare global {
   interface Window {
@@ -43,7 +43,7 @@ export function App() {
   const [account, setAccount] = useState<Address>();
   const [chainId, setChainId] = useState<number>();
   const [chain, setChain] = useState<Chain>();
-  const [lastTxReceipt, setLastTxReceipt] = useState<any | null>(null);
+  const [lastTxReceipt, setLastTxReceipt] = useState<TransactionReceipt | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
 
   const pollRef = useRef<number | null>(null);
@@ -62,12 +62,12 @@ export function App() {
       const resp = await api<
         ApiOk<{ connected: boolean; account?: string; chainId?: number }> | ApiErr
       >("/api/connection");
-      const ok = resp && (resp as ApiOk<any>).status === "ok";
-      const data = ok ? (resp as ApiOk<any>).data : null;
 
-      const serverConnected = !!data?.connected;
-      const serverAccount = (data?.account as string | undefined)?.toLowerCase();
-      const serverChainId = data?.chainId as number | undefined;
+      if (!isOk(resp)) return;
+
+      const serverConnected = !!resp.data?.connected;
+      const serverAccount = (resp.data?.account as string | undefined)?.toLowerCase();
+      const serverChainId = resp.data?.chainId as number | undefined;
 
       if (!account || chainId == null) {
         if (serverConnected) {
@@ -134,67 +134,36 @@ export function App() {
     const tx = pending;
 
     try {
-      const targetChainId = readPendingChainId(tx) ?? chainId;
-      await ensureChainSelected(selected.provider, targetChainId, chainId);
-      const desiredChain =
-        chain ?? (targetChainId != null ? getChainById(targetChainId) : undefined);
-      if (!desiredChain) throw new Error("No chain metadata available");
+      const hash = (await selected.provider.request({
+        method: "eth_sendTransaction",
+        params: [tx.request],
+      })) as `0x${string}`;
+      setLastTxHash(hash);
 
-      try {
-        const raw = await selected.provider.request<string>({ method: "eth_chainId" });
-        applyChainId(raw, setChainId, setChain);
-      } catch {}
+      const receipt = await waitForTransactionReceipt(walletClient, { hash });
+      setLastTxReceipt(receipt);
 
-      const { readHex } = await import("./utils/api.ts");
-      const from =
-        (account as `0x${string}` | undefined) ??
-        (readAddr(tx, "from", "sender") as `0x${string}` | undefined);
-      if (!from) throw new Error("No sender account available");
-
-      const serverFrom = readAddr(tx, "from", "sender");
-      if (serverFrom && account && serverFrom.toLowerCase() !== account.toLowerCase()) {
-        throw new Error(`Server 'from' (${serverFrom}) != connected (${account})`);
-      }
-
-      const to = readAddr(tx, "to");
-      const value = pick(readHex(tx, "value", "amount"));
-      const data = pick(readHex(tx, "data", "input", "calldata"));
-      const gas = pick(readHex(tx, "gas", "gasLimit"));
-      const gasPrice = pick(readHex(tx, "gasPrice"));
-      const maxFeePerGas = pick(readHex(tx, "maxFeePerGas"));
-      const maxPriorityFeePerGas = pick(readHex(tx, "maxPriorityFeePerGas"));
-      const nonce = tx.nonce as number | undefined;
-
-      const params: any = { account: from, to, value, data, gas, nonce };
-      if (gasPrice) params.gasPrice = gasPrice;
-      else if (maxFeePerGas || maxPriorityFeePerGas) {
-        params.maxFeePerGas = maxFeePerGas;
-        params.maxPriorityFeePerGas = maxPriorityFeePerGas;
-      }
-
-      const lastHash = await walletClient.sendTransaction({
-        ...params,
-        chain: desiredChain,
-      });
-      console.log("tx sent:", { id: tx.id, hash: lastHash });
-      setLastTxHash(lastHash);
-
-      const lastReceipt = await waitForTransactionReceipt(walletClient, { hash: lastHash });
-      console.log("tx receipt:", lastReceipt);
-      setLastTxReceipt(lastReceipt);
-
-      await api("/api/transaction/response", "POST", { id: tx.id, hash: lastHash, error: null });
+      await api("/api/transaction/response", "POST", { id: tx.id, hash, error: null });
       await pollTick();
-    } catch (e: any) {
-      console.log("send failed:", String(e?.message ?? e));
+    } catch (e: unknown) {
+      const msg =
+        typeof e === "object" &&
+        e &&
+        "message" in e &&
+        typeof (e as { message?: unknown }).message === "string"
+          ? (e as { message: string }).message
+          : String(e);
+
+      console.log("send failed:", msg);
 
       try {
         await api("/api/transaction/response", "POST", {
-          id: tx!.id,
+          id: (pending as { id?: string }).id,
           hash: null,
-          error: String(e?.message ?? e),
+          error: msg,
         });
       } catch {}
+
       await pollTick();
     }
   };
