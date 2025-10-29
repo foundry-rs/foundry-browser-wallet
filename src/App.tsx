@@ -133,6 +133,8 @@ export function App() {
   const signAndSendCurrent = async () => {
     if (!walletClient || !selected || !pending) return;
 
+    if (!pending?.request) return;
+
     try {
       const hash = (await selected.provider.request({
         method: "eth_sendTransaction",
