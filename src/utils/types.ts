@@ -1,3 +1,5 @@
+import type { TransactionRequest } from "viem";
+
 export type EIP6963ProviderInfo = {
   uuid: string;
   name: string;
@@ -37,3 +39,7 @@ declare global {
     "eip6963:requestProvider": Event;
   }
 }
+
+export type ApiOk<T> = { status: "ok"; data: T };
+export type ApiErr = { status: string; message?: string };
+export type PendingAny = Record<string, unknown> & { id: string; request: TransactionRequest };
