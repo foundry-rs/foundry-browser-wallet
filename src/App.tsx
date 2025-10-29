@@ -10,7 +10,7 @@ import {
   type TransactionReceipt,
 } from "viem";
 import { getAddresses, requestAddresses, waitForTransactionReceipt } from "viem/actions";
-import { applyChainId, api, isOk, renderJSON } from "./utils/helpers.ts";
+import { api, applyChainId, isOk, renderJSON } from "./utils/helpers.ts";
 import type {
   ApiErr,
   ApiOk,
@@ -57,7 +57,7 @@ export function App() {
     });
   }, [selected, chain]);
 
-  const ensureServerConnected = async () => {
+  const ensureServerConnected = useCallback(async () => {
     try {
       const resp = await api<
         ApiOk<{ connected: boolean; account?: string; chainId?: number }> | ApiErr
@@ -83,9 +83,9 @@ export function App() {
         }
       }
     } catch {}
-  };
+  }, [account, chainId]);
 
-  const pollTick = async () => {
+  const pollTick = useCallback(async () => {
     await ensureServerConnected();
 
     try {
@@ -109,7 +109,7 @@ export function App() {
         }
       }
     } catch {}
-  };
+  }, [ensureServerConnected, pending]);
 
   const connect = async () => {
     if (!walletClient || !selected) return;
@@ -253,7 +253,7 @@ export function App() {
 
   // Polling loop to check for new pending transactions.
   useEffect(() => {
-    pollTick();
+    void pollTick();
 
     if (!pollRef.current) {
       pollRef.current = window.setInterval(pollTick, 1000);
@@ -266,7 +266,7 @@ export function App() {
 
       pollRef.current = null;
     };
-  }, [account, chainId, selected]);
+  }, [pollTick]);
 
   return (
     <div className="wrapper">

@@ -1,4 +1,4 @@
-import { hexToBigInt, type Chain } from "viem";
+import { type Chain, hexToBigInt } from "viem";
 import * as chains from "viem/chains";
 
 export const ALL_CHAINS: readonly Chain[] = Object.freeze(Object.values(chains) as Chain[]);
