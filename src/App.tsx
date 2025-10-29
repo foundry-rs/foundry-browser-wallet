@@ -2,20 +2,13 @@ import "./styles/App.css";
 
 import { Porto } from "porto";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  type Address,
-  type Chain,
-  createWalletClient,
-  custom,
-  type TransactionReceipt,
-} from "viem";
+import { type Address, type Chain, createWalletClient, custom } from "viem";
 import { getAddresses, requestAddresses, waitForTransactionReceipt } from "viem/actions";
-import { api, isOk, pick, readAddr, renderJSON } from "./utils/api.ts";
 import {
   applyChainId,
   ensureChainSelected,
-  getChainById,
   readPendingChainId,
+  getChainById,
 } from "./utils/helpers.ts";
 import type {
   ApiErr,
@@ -25,6 +18,7 @@ import type {
   EIP6963ProviderInfo,
   PendingAny,
 } from "./utils/types.ts";
+import { api, pick, readAddr, renderJSON } from "./utils/api.ts";
 
 declare global {
   interface Window {
@@ -49,7 +43,7 @@ export function App() {
   const [account, setAccount] = useState<Address>();
   const [chainId, setChainId] = useState<number>();
   const [chain, setChain] = useState<Chain>();
-  const [lastTxReceipt, setLastTxReceipt] = useState<TransactionReceipt | null>(null);
+  const [lastTxReceipt, setLastTxReceipt] = useState<any | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
 
   const pollRef = useRef<number | null>(null);
@@ -68,11 +62,12 @@ export function App() {
       const resp = await api<
         ApiOk<{ connected: boolean; account?: string; chainId?: number }> | ApiErr
       >("/api/connection");
-      if (!isOk(resp)) return;
+      const ok = resp && (resp as ApiOk<any>).status === "ok";
+      const data = ok ? (resp as ApiOk<any>).data : null;
 
-      const serverConnected = !!resp.data?.connected;
-      const serverAccount = (resp.data?.account as string | undefined)?.toLowerCase();
-      const serverChainId = resp.data?.chainId as number | undefined;
+      const serverConnected = !!data?.connected;
+      const serverAccount = (data?.account as string | undefined)?.toLowerCase();
+      const serverChainId = data?.chainId as number | undefined;
 
       if (!account || chainId == null) {
         if (serverConnected) {
@@ -133,9 +128,7 @@ export function App() {
   const signAndSendCurrent = async () => {
     if (!walletClient || !selected || !pending) return;
 
-    const tx = pending;
-
-    console.log(tx);
+    let tx = pending;
 
     try {
       const targetChainId = readPendingChainId(tx) ?? chainId;
@@ -170,10 +163,8 @@ export function App() {
       const nonce = tx.nonce as number | undefined;
 
       const params: any = { account: from, to, value, data, gas, nonce };
-
-      if (gasPrice) {
-        params.gasPrice = gasPrice;
-      } else if (maxFeePerGas || maxPriorityFeePerGas) {
+      if (gasPrice) params.gasPrice = gasPrice;
+      else if (maxFeePerGas || maxPriorityFeePerGas) {
         params.maxFeePerGas = maxFeePerGas;
         params.maxPriorityFeePerGas = maxPriorityFeePerGas;
       }
@@ -182,7 +173,6 @@ export function App() {
         ...params,
         chain: desiredChain,
       });
-
       console.log("tx sent:", { id: tx.id, hash: lastHash });
       setLastTxHash(lastHash);
 
@@ -197,7 +187,7 @@ export function App() {
 
       try {
         await api("/api/transaction/response", "POST", {
-          id: tx?.id,
+          id: tx!.id,
           hash: null,
           error: String(e?.message ?? e),
         });
@@ -223,7 +213,7 @@ export function App() {
 
   useEffect(() => {
     if (selectedUuid) resetClientState();
-  }, [selectedUuid, resetClientState]);
+  }, [selectedUuid]);
 
   useEffect(() => {
     if (providers.length === 1 && !selected) {
@@ -288,7 +278,7 @@ export function App() {
       if (pollRef.current) window.clearInterval(pollRef.current);
       pollRef.current = null;
     };
-  }, [pollTick]);
+  }, [account, chainId, selected]);
 
   return (
     <div className="wrapper">
@@ -317,22 +307,24 @@ export function App() {
 
         {providers.length === 0 && <p>No wallets found.</p>}
 
-        {selected && account && (
-          <>
-            <div className="section-title">Connected</div>
-            <pre className="box">
-              {`\
+        {selected && account && (<>
+          <div className="section-title">Connected</div>
+          <pre className="box">
+            {`\
 account: ${account}
 chain:   ${chain ? `${chain.name} (${chainId})` : (chainId ?? "unknown")}
 rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[0] ?? "unknown"}`}
-            </pre>
-          </>
-        )}
+          </pre>
+        </>)}
 
-        {selected && !account && (
-          <button type="button" className="connect" onClick={connect}>
-            Connect Wallet
-          </button>
+        {selected ? (
+          !account && (
+            <button type="button" className="connect" onClick={connect}>
+              Connect Wallet
+            </button>
+          )
+        ) : (
+          <p>Please select a wallet</p>
         )}
 
         {selected && account && (
@@ -346,17 +338,17 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
 
         {selected && account && lastTxHash && (
           <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-            <div className="section-title">Transaction Hash</div>
-            <pre className="box">{lastTxHash}</pre>
-
-            {lastTxReceipt && (
-              <>
+            <div>
+              <div className="section-title">Transaction Hash</div>
+              <pre className="box">{lastTxHash}</pre>
+          
+              <div>
                 <div className="section-title">Receipt</div>
                 <pre className="box">
-                  {lastTxReceipt ? renderJSON(lastTxReceipt) : "No receipt available"}
+                  {lastTxReceipt ? renderJSON(lastTxReceipt) : "Waiting for receipt..."}
                 </pre>
-              </>
-            )}
+              </div>
+            </div>
           </div>
         )}
 

@@ -1,5 +1,3 @@
-import type { ApiErr, ApiOk } from "./types";
-
 export const ENDPOINT = "http://127.0.0.1:9545";
 
 export const api = async <T = unknown>(
@@ -46,7 +44,3 @@ export const readHex = (obj: any, ...keys: string[]): `0x${string}` | undefined 
 
 export const renderJSON = (obj: unknown) =>
   JSON.stringify(obj, (_k, v) => (typeof v === "bigint" ? v.toString() : v), 2);
-
-export const isOk = <T>(r: ApiOk<T> | ApiErr | null | undefined): r is ApiOk<T> => {
-  return !!r && (r as ApiOk<T>).status === "ok";
-};
