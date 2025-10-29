@@ -307,14 +307,10 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           </>
         )}
 
-        {selected ? (
-          !account && (
-            <button type="button" className="connect" onClick={connect}>
-              Connect Wallet
-            </button>
-          )
-        ) : (
-          <p>Please select a wallet</p>
+        {selected && !account && (
+          <button type="button" className="wallet-connect" onClick={connect}>
+            Connect Wallet
+          </button>
         )}
 
         {selected && account && (
@@ -341,7 +337,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
         )}
 
         {selected && account && pending && (
-          <button type="button" onClick={signAndSendCurrent}>
+          <button type="button" className="wallet-send" onClick={signAndSendCurrent}>
             Sign & Send
           </button>
         )}

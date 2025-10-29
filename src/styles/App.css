@@ -17,13 +17,6 @@
   border-radius: 8px;
 }
 
-/* .header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 24px;
-} */
-
 .banner {
   width: 600px;
   border-radius: 8px;
@@ -31,7 +24,16 @@
 }
 
 .wallet-selector {
+  align-self: center;
   margin-top: 16px;
+}
+
+.wallet-connect {
+  align-self: center;
+}
+
+.wallet-send {
+  align-self: center;
 }
 
 .title {
