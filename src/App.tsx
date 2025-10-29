@@ -1,7 +1,7 @@
 import "./styles/App.css";
 
 import { Porto } from "porto";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Address, type Chain, createWalletClient, custom } from "viem";
 import { getAddresses, requestAddresses, waitForTransactionReceipt } from "viem/actions";
 import {
@@ -196,7 +196,7 @@ export function App() {
     }
   };
 
-  const resetClientState = async () => {
+  const resetClientState = useCallback(async () => {
     setPending(null);
     setLastTxHash(null);
     setLastTxReceipt(null);
@@ -209,11 +209,11 @@ export function App() {
     try {
       await api("/api/connection", "POST", null);
     } catch {}
-  };
+  }, []);
 
   useEffect(() => {
     if (selectedUuid) resetClientState();
-  }, [selectedUuid]);
+  }, [selectedUuid, resetClientState]);
 
   useEffect(() => {
     if (providers.length === 1 && !selected) {
@@ -307,15 +307,17 @@ export function App() {
 
         {providers.length === 0 && <p>No wallets found.</p>}
 
-        {selected && account && (<>
-          <div className="section-title">Connected</div>
-          <pre className="box">
-            {`\
+        {selected && account && (
+          <>
+            <div className="section-title">Connected</div>
+            <pre className="box">
+              {`\
 account: ${account}
 chain:   ${chain ? `${chain.name} (${chainId})` : (chainId ?? "unknown")}
 rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[0] ?? "unknown"}`}
-          </pre>
-        </>)}
+            </pre>
+          </>
+        )}
 
         {selected ? (
           !account && (
@@ -341,7 +343,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
             <div>
               <div className="section-title">Transaction Hash</div>
               <pre className="box">{lastTxHash}</pre>
-          
+
               <div>
                 <div className="section-title">Receipt</div>
                 <pre className="box">
