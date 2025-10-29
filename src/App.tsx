@@ -271,10 +271,10 @@ export function App() {
   return (
     <div className="wrapper">
       <div className="container">
-        <h1 className="title">Foundry</h1>
+        <img className="banner" src="banner.png" alt="Foundry Browser Wallet" />
 
         {providers.length > 1 && (
-          <div>
+          <div className="wallet-selector">
             <label>
               <select
                 value={selectedUuid ?? ""}

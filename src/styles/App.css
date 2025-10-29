@@ -1,16 +1,37 @@
-.container {
-  background-color: #3b3b3b;
-  padding: 16px;
-  max-width: 600px;
-  border-radius: 8px;
-}
-
 .wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  padding: 24px;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background-color: #3b3b3b;
+  padding: 16px;
+  max-width: 600px;
+  border-radius: 8px;
+}
+
+/* .header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+} */
+
+.banner {
+  width: 600px;
+  border-radius: 8px;
+  height: auto;
+}
+
+.wallet-selector {
+  margin-top: 16px;
 }
 
 .title {
@@ -29,6 +50,6 @@
   font-size: 13px;
   margin-bottom: 16px;
   border: 1px solid #e1e4e8;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 8px 12px;
 }

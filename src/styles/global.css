@@ -3,7 +3,6 @@ body,
 #root {
   width: 100%;
   height: 100%;
-  overflow: hidden;
   font-family:
     system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     sans-serif;
@@ -25,8 +24,8 @@ button:hover {
 }
 
 select {
-  padding: 4px;
-  border-radius: 4px;
+  padding: 8px;
+  border-radius: 8px;
   border: 1px solid #e1e4e8;
   background-color: #1e2026;
   color: #f8f8f8;
