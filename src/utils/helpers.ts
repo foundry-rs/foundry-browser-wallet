@@ -1,6 +1,8 @@
 import { type Chain, hexToBigInt } from "viem";
 import * as chains from "viem/chains";
 
+import type { ApiErr, ApiOk } from "./types";
+
 export const ALL_CHAINS: readonly Chain[] = Object.freeze(Object.values(chains) as Chain[]);
 export const getChainById = (id: number) => ALL_CHAINS.find((c) => c.id === id);
 
@@ -31,7 +33,7 @@ export const applyChainId = (
 
 export const toBig = (h?: `0x${string}`) => (h ? hexToBigInt(h) : undefined);
 
-import type { ApiErr, ApiOk } from "./types";
+
 
 export const ENDPOINT = "http://127.0.0.1:9545";
 

@@ -10,6 +10,7 @@ import {
   type TransactionReceipt,
 } from "viem";
 import { getAddresses, requestAddresses, waitForTransactionReceipt } from "viem/actions";
+
 import { api, applyChainId, isOk, renderJSON } from "./utils/helpers.ts";
 import type {
   ApiErr,
@@ -91,7 +92,7 @@ export function App() {
     try {
       const resp = await api<ApiOk<PendingAny> | ApiErr>("/api/transaction/request");
 
-      if (!resp || (resp as ApiErr).status !== "ok") {
+      if (!isOk(resp)) {
         if (pending) {
           setPending(null);
           lastPendingIdRef.current = null;
@@ -101,7 +102,7 @@ export function App() {
 
         if (!lastPendingIdRef.current || lastPendingIdRef.current !== tx.id) {
           setPending(tx);
-          lastPendingIdRef.current = tx.id ?? null;
+          lastPendingIdRef.current = tx.id;
           setLastTxHash(null);
           setLastTxReceipt(null);
         } else if (!pending) {
@@ -131,19 +132,17 @@ export function App() {
   const signAndSendCurrent = async () => {
     if (!walletClient || !selected || !pending) return;
 
-    const tx = pending;
-
     try {
       const hash = (await selected.provider.request({
         method: "eth_sendTransaction",
-        params: [tx.request],
+        params: [pending.request],
       })) as `0x${string}`;
       setLastTxHash(hash);
 
       const receipt = await waitForTransactionReceipt(walletClient, { hash });
       setLastTxReceipt(receipt);
 
-      await api("/api/transaction/response", "POST", { id: tx.id, hash, error: null });
+      await api("/api/transaction/response", "POST", { id: pending.id, hash, error: null });
       await pollTick();
     } catch (e: unknown) {
       const msg =
@@ -158,7 +157,7 @@ export function App() {
 
       try {
         await api("/api/transaction/response", "POST", {
-          id: (pending as { id?: string }).id,
+          id: pending.id,
           hash: null,
           error: msg,
         });
