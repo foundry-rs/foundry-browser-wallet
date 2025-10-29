@@ -87,8 +87,10 @@ export function App() {
 
   const pollTick = async () => {
     await ensureServerConnected();
+
     try {
       const resp = await api<ApiOk<PendingAny> | ApiErr>("/api/transaction/request");
+
       if (!resp || (resp as ApiErr).status !== "ok") {
         if (pending) {
           setPending(null);
@@ -96,6 +98,7 @@ export function App() {
         }
       } else {
         const tx = (resp as ApiOk<PendingAny>).data;
+
         if (!lastPendingIdRef.current || lastPendingIdRef.current !== tx.id) {
           setPending(tx);
           lastPendingIdRef.current = tx.id ?? null;
@@ -128,7 +131,7 @@ export function App() {
   const signAndSendCurrent = async () => {
     if (!walletClient || !selected || !pending) return;
 
-    let tx = pending;
+    const tx = pending;
 
     try {
       const targetChainId = readPendingChainId(tx) ?? chainId;
@@ -211,28 +214,37 @@ export function App() {
     } catch {}
   }, []);
 
+  // Upon switching wallets, reset state.
   useEffect(() => {
-    if (selectedUuid) resetClientState();
+    if (selectedUuid) {
+      resetClientState();
+    }
   }, [selectedUuid, resetClientState]);
 
+  // Auto-select if only one wallet is available.
   useEffect(() => {
     if (providers.length === 1 && !selected) {
       setSelectedUuid(providers[0].info.uuid);
     }
   }, [providers, selected]);
 
+  // Listen for new provider announcements.
   useEffect(() => {
     const onAnnounce = (ev: EIP6963AnnounceProviderEvent) => {
       const { info, provider } = ev.detail;
+
       setProviders((prev) =>
         prev.some((p) => p.info.uuid === info.uuid) ? prev : [...prev, { info, provider }],
       );
     };
+
     window.addEventListener("eip6963:announceProvider", onAnnounce);
     window.dispatchEvent(new Event("eip6963:requestProvider"));
+
     return () => window.removeEventListener("eip6963:announceProvider", onAnnounce);
   }, []);
 
+  // Listen for account and chain changes.
   useEffect(() => {
     if (!selected) return;
 
@@ -248,6 +260,7 @@ export function App() {
     };
   }, [selected]);
 
+  // Upon account or chainId change, update state.
   useEffect(() => {
     (async () => {
       if (!selected) return;
@@ -269,13 +282,19 @@ export function App() {
     })();
   }, [selected, walletClient]);
 
+  // Polling loop to check for new pending transactions.
   useEffect(() => {
     pollTick();
 
-    if (!pollRef.current) pollRef.current = window.setInterval(pollTick, 1000);
+    if (!pollRef.current) {
+      pollRef.current = window.setInterval(pollTick, 1000);
+    }
 
     return () => {
-      if (pollRef.current) window.clearInterval(pollRef.current);
+      if (pollRef.current) {
+        window.clearInterval(pollRef.current);
+      }
+
       pollRef.current = null;
     };
   }, [account, chainId, selected]);
