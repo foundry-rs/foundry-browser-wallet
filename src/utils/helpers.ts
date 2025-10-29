@@ -33,8 +33,6 @@ export const applyChainId = (
 
 export const toBig = (h?: `0x${string}`) => (h ? hexToBigInt(h) : undefined);
 
-
-
 export const ENDPOINT = "http://127.0.0.1:9545";
 
 export const api = async <T = unknown>(
