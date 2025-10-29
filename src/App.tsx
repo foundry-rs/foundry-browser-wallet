@@ -47,7 +47,6 @@ export function App() {
   const [lastTxReceipt, setLastTxReceipt] = useState<TransactionReceipt | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
 
-  const pollRef = useRef<number | null>(null);
   const lastPendingIdRef = useRef<string | null>(null);
 
   const walletClient = useMemo(() => {
@@ -111,6 +110,8 @@ export function App() {
       }
     } catch {}
   }, [ensureServerConnected, pending]);
+
+  const pollFnRef = useRef<() => void>(() => {});
 
   const connect = async () => {
     if (!walletClient || !selected) return;
@@ -232,6 +233,7 @@ export function App() {
   useEffect(() => {
     (async () => {
       if (!selected) return;
+
       try {
         const raw = await selected.provider.request<string>({ method: "eth_chainId" });
         applyChainId(raw, setChainId, setChain);
@@ -239,6 +241,7 @@ export function App() {
         setChainId(undefined);
         setChain(undefined);
       }
+
       if (walletClient) {
         try {
           const addrs = await getAddresses(walletClient);
@@ -250,22 +253,24 @@ export function App() {
     })();
   }, [selected, walletClient]);
 
-  // Polling loop to check for new pending transactions.
   useEffect(() => {
-    void pollTick();
-
-    if (!pollRef.current) {
-      pollRef.current = window.setInterval(pollTick, 1000);
-    }
-
-    return () => {
-      if (pollRef.current) {
-        window.clearInterval(pollRef.current);
-      }
-
-      pollRef.current = null;
+    pollFnRef.current = () => {
+      void pollTick();
     };
   }, [pollTick]);
+
+  // Polling loop to check for new pending transactions.
+  useEffect(() => {
+    pollFnRef.current();
+
+    const id = window.setInterval(() => {
+      pollFnRef.current();
+    }, 1000);
+
+    return () => {
+      window.clearInterval(id);
+    };
+  }, []);
 
   return (
     <div className="wrapper">
