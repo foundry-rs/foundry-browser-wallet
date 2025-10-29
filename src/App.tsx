@@ -48,6 +48,8 @@ export function App() {
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
 
   const lastPendingIdRef = useRef<string | null>(null);
+  const prevSelectedUuidRef = useRef<string | null>(null);
+  const pollFnRef = useRef<() => void>(() => {});
 
   const walletClient = useMemo(() => {
     if (!selected) return undefined;
@@ -110,8 +112,6 @@ export function App() {
       }
     } catch {}
   }, [ensureServerConnected, pending]);
-
-  const pollFnRef = useRef<() => void>(() => {});
 
   const connect = async () => {
     if (!walletClient || !selected) return;
@@ -187,9 +187,15 @@ export function App() {
 
   // Upon switching wallets, reset state.
   useEffect(() => {
-    if (selectedUuid) {
-      resetClientState();
+    if (
+      prevSelectedUuidRef.current &&
+      selectedUuid &&
+      prevSelectedUuidRef.current !== selectedUuid
+    ) {
+      void resetClientState();
     }
+
+    prevSelectedUuidRef.current = selectedUuid;
   }, [selectedUuid, resetClientState]);
 
   // Auto-select if only one wallet is available.
