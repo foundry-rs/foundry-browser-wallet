@@ -1,7 +1,7 @@
 import "./styles/App.css";
 
 import { Porto } from "porto";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type Address,
   type Chain,
@@ -48,44 +48,7 @@ export function App() {
   const [lastTxReceipt, setLastTxReceipt] = useState<TransactionReceipt | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
 
-  const lastPendingIdRef = useRef<string | null>(null);
   const prevSelectedUuidRef = useRef<string | null>(null);
-
-  const walletClient = useMemo(() => {
-    if (!selected) return undefined;
-    return createWalletClient({
-      transport: custom(selected.provider),
-      chain: chain ?? undefined,
-    });
-  }, [selected, chain]);
-
-  const ensureServerConnected = useCallback(async () => {
-    try {
-      const resp = await api<
-        ApiOk<{ connected: boolean; account?: string; chainId?: number }> | ApiErr
-      >("/api/connection");
-
-      if (!isOk(resp)) return;
-
-      const serverConnected = !!resp.data?.connected;
-      const serverAccount = (resp.data?.account as string | undefined)?.toLowerCase();
-      const serverChainId = resp.data?.chainId as number | undefined;
-
-      if (!account || chainId == null) {
-        if (serverConnected) {
-          await api("/api/connection", "POST", null);
-        }
-      } else {
-        if (
-          !serverConnected ||
-          serverAccount !== account.toLowerCase() ||
-          serverChainId !== chainId
-        ) {
-          await api("/api/connection", "POST", [account, chainId]);
-        }
-      }
-    } catch {}
-  }, [account, chainId]);
 
   const connect = async () => {
     if (!selected || confirmed) return;
@@ -119,7 +82,12 @@ export function App() {
   };
 
   const signAndSendCurrent = async () => {
-    if (!walletClient || !selected || !pending?.request) return;
+    if (!selected || !pending?.request) return;
+
+    const walletClient = createWalletClient({
+      transport: custom(selected.provider),
+      chain: chain ?? undefined,
+    });
 
     try {
       const hash = (await selected.provider.request({
@@ -161,7 +129,6 @@ export function App() {
     setPending(null);
     setLastTxHash(null);
     setLastTxReceipt(null);
-    lastPendingIdRef.current = null;
 
     setAccount(undefined);
     setChainId(undefined);
