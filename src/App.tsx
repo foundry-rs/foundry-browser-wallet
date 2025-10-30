@@ -37,6 +37,7 @@ export function App() {
   const [providers, setProviders] = useState<{ info: EIP6963ProviderInfo; provider: EIP1193 }[]>(
     [],
   );
+  const [confirmed, setConfirmed] = useState<boolean>(false);
   const [pending, setPending] = useState<PendingAny | null>(null);
   const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
   const selected = providers.find((p) => p.info.uuid === selectedUuid) ?? null;
@@ -60,6 +61,8 @@ export function App() {
   }, [selected, chain]);
 
   const ensureServerConnected = useCallback(async () => {
+    if (confirmed) return;
+
     try {
       const resp = await api<
         ApiOk<{ connected: boolean; account?: string; chainId?: number }> | ApiErr
@@ -85,7 +88,7 @@ export function App() {
         }
       }
     } catch {}
-  }, [account, chainId]);
+  }, [account, chainId, confirmed]);
 
   const pollTick = useCallback(async () => {
     await ensureServerConnected();
@@ -115,6 +118,7 @@ export function App() {
 
   const connect = async () => {
     if (!walletClient || !selected) return;
+    if (confirmed) return;
 
     const addrs = (await requestAddresses(walletClient)) as readonly Address[];
     setAccount(addrs[0] as Address | undefined);
@@ -125,10 +129,14 @@ export function App() {
     } catch {
       setChainId(undefined);
       setChain(undefined);
-    }
-
-    await ensureServerConnected();
+    }  
   };
+
+  const confirm = async () => {
+    await ensureServerConnected();
+
+    setConfirmed(true);
+  }
 
   const signAndSendCurrent = async () => {
     if (!walletClient || !selected || !pending?.request) return;
@@ -177,6 +185,7 @@ export function App() {
     setAccount(undefined);
     setChainId(undefined);
     setChain(undefined);
+    setConfirmed(false);
 
     try {
       await api("/api/connection", "POST", null);
@@ -223,41 +232,26 @@ export function App() {
   useEffect(() => {
     if (!selected) return;
 
-    const onAccountsChanged = (accounts: readonly string[]) =>
-      setAccount((accounts[0] as Address) ?? undefined);
-    const onChainChanged = (raw: unknown) => applyChainId(raw, setChainId, setChain);
+  const onAccountsChanged = (accounts: readonly string[]) => {
+    if (confirmed) return;
+
+    setAccount((accounts[0] as Address) ?? undefined);
+  };
+
+  const onChainChanged = (raw: unknown) => {
+    if (confirmed) return;
+
+    applyChainId(raw, setChainId, setChain);
+  };
 
     selected.provider.on?.("accountsChanged", onAccountsChanged);
     selected.provider.on?.("chainChanged", onChainChanged);
+
     return () => {
       selected.provider.removeListener?.("accountsChanged", onAccountsChanged);
       selected.provider.removeListener?.("chainChanged", onChainChanged);
     };
-  }, [selected]);
-
-  // Upon account or chainId change, update state.
-  useEffect(() => {
-    (async () => {
-      if (!selected) return;
-
-      try {
-        const raw = await selected.provider.request<string>({ method: "eth_chainId" });
-        applyChainId(raw, setChainId, setChain);
-      } catch {
-        setChainId(undefined);
-        setChain(undefined);
-      }
-
-      if (walletClient) {
-        try {
-          const addrs = await getAddresses(walletClient);
-          setAccount((addrs?.[0] as Address) || undefined);
-        } catch {
-          setAccount(undefined);
-        }
-      }
-    })();
-  }, [selected, walletClient]);
+  }, [selected, confirmed]);
 
   useEffect(() => {
     pollFnRef.current = () => {
@@ -267,6 +261,8 @@ export function App() {
 
   // Polling loop to check for new pending transactions.
   useEffect(() => {
+    if (!confirmed) return;
+
     pollFnRef.current();
 
     const id = window.setInterval(() => {
@@ -276,7 +272,7 @@ export function App() {
     return () => {
       window.clearInterval(id);
     };
-  }, []);
+  }, [confirmed]);
 
   return (
     <div className="wrapper">
@@ -289,6 +285,7 @@ export function App() {
               <select
                 value={selectedUuid ?? ""}
                 onChange={(e) => setSelectedUuid(e.target.value || null)}
+                disabled={confirmed}
               >
                 <option value="" disabled>
                   Select wallet…
@@ -305,6 +302,18 @@ export function App() {
 
         {providers.length === 0 && <p>No wallets found.</p>}
 
+        {selected && !account && (
+          <button type="button" className="wallet-connect" onClick={connect}>
+            Connect Wallet
+          </button>
+        )}
+
+        {selected && account && !confirmed && (
+          <button type="button" className="wallet-confirm" onClick={confirm}>
+            Confirm Connection
+          </button>
+        )}
+
         {selected && account && (
           <>
             <div className="section-title">Connected</div>
@@ -317,13 +326,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           </>
         )}
 
-        {selected && !account && (
-          <button type="button" className="wallet-connect" onClick={connect}>
-            Connect Wallet
-          </button>
-        )}
-
-        {selected && account && (
+        {selected && account && confirmed && (
           <>
             <div className="section-title">To Sign</div>
             <div className="box">
