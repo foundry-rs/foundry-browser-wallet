@@ -9,7 +9,7 @@ import {
   custom,
   type TransactionReceipt,
 } from "viem";
-import { getAddresses, requestAddresses, waitForTransactionReceipt } from "viem/actions";
+import { waitForTransactionReceipt } from "viem/actions";
 
 import { api, applyChainId, isOk, renderJSON } from "./utils/helpers.ts";
 import type {
@@ -61,8 +61,6 @@ export function App() {
   }, [selected, chain]);
 
   const ensureServerConnected = useCallback(async () => {
-    if (confirmed) return;
-
     try {
       const resp = await api<
         ApiOk<{ connected: boolean; account?: string; chainId?: number }> | ApiErr
@@ -88,10 +86,12 @@ export function App() {
         }
       }
     } catch {}
-  }, [account, chainId, confirmed]);
+  }, [account, chainId]);
 
   const pollTick = useCallback(async () => {
-    await ensureServerConnected();
+    if (!confirmed) {
+      await ensureServerConnected();
+    }
 
     try {
       const resp = await api<ApiOk<PendingAny> | ApiErr>("/api/transaction/request");
@@ -117,11 +117,12 @@ export function App() {
   }, [ensureServerConnected, pending]);
 
   const connect = async () => {
-    if (!walletClient || !selected) return;
-    if (confirmed) return;
+    if (!selected || confirmed) return;
 
-    const addrs = (await requestAddresses(walletClient)) as readonly Address[];
-    setAccount(addrs[0] as Address | undefined);
+    const addrs = (await selected.provider.request({
+      method: "eth_requestAccounts",
+    })) as string[];
+    setAccount((addrs?.[0] as Address) ?? undefined);
 
     try {
       const raw = await selected.provider.request<string>({ method: "eth_chainId" });
@@ -129,14 +130,14 @@ export function App() {
     } catch {
       setChainId(undefined);
       setChain(undefined);
-    }  
+    }
   };
 
   const confirm = async () => {
     await ensureServerConnected();
 
     setConfirmed(true);
-  }
+  };
 
   const signAndSendCurrent = async () => {
     if (!walletClient || !selected || !pending?.request) return;
@@ -232,17 +233,17 @@ export function App() {
   useEffect(() => {
     if (!selected) return;
 
-  const onAccountsChanged = (accounts: readonly string[]) => {
-    if (confirmed) return;
+    const onAccountsChanged = (accounts: readonly string[]) => {
+      if (confirmed) return;
 
-    setAccount((accounts[0] as Address) ?? undefined);
-  };
+      setAccount((accounts[0] as Address) ?? undefined);
+    };
 
-  const onChainChanged = (raw: unknown) => {
-    if (confirmed) return;
+    const onChainChanged = (raw: unknown) => {
+      if (confirmed) return;
 
-    applyChainId(raw, setChainId, setChain);
-  };
+      applyChainId(raw, setChainId, setChain);
+    };
 
     selected.provider.on?.("accountsChanged", onAccountsChanged);
     selected.provider.on?.("chainChanged", onChainChanged);
@@ -303,7 +304,7 @@ export function App() {
         {providers.length === 0 && <p>No wallets found.</p>}
 
         {selected && !account && (
-          <button type="button" className="wallet-connect" onClick={connect}>
+          <button type="button" className="wallet-connect" onClick={connect} disabled={confirmed}>
             Connect Wallet
           </button>
         )}
@@ -326,7 +327,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           </>
         )}
 
-        {selected && account && confirmed && (
+        {selected && account && confirmed && !lastTxHash && (
           <>
             <div className="section-title">To Sign</div>
             <div className="box">
@@ -349,7 +350,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           </>
         )}
 
-        {selected && account && pending && (
+        {selected && account && pending && confirmed && (
           <button type="button" className="wallet-send" onClick={signAndSendCurrent}>
             Sign & Send
           </button>
