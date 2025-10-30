@@ -37,6 +37,7 @@ export function App() {
   const [providers, setProviders] = useState<{ info: EIP6963ProviderInfo; provider: EIP1193 }[]>(
     [],
   );
+
   const [confirmed, setConfirmed] = useState<boolean>(false);
   const [pending, setPending] = useState<PendingAny | null>(null);
   const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
@@ -48,6 +49,7 @@ export function App() {
   const [lastTxReceipt, setLastTxReceipt] = useState<TransactionReceipt | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
 
+  const pollIntervalRef = useRef<number | null>(null);
   const prevSelectedUuidRef = useRef<string | null>(null);
 
   const connect = async () => {
@@ -67,6 +69,8 @@ export function App() {
     }
   };
 
+  // Confirm the current connection.
+  // This is required for Foundry to fill out the `from` field and `chain` in transactions.
   const confirm = async () => {
     if (!account || chainId == null) {
       return;
@@ -81,6 +85,7 @@ export function App() {
     setConfirmed(true);
   };
 
+  // Sign and send the current pending transaction.
   const signAndSendCurrent = async () => {
     if (!selected || !pending?.request) return;
 
@@ -96,12 +101,14 @@ export function App() {
       })) as `0x${string}`;
       setLastTxHash(hash);
 
+      await api("/api/transaction/response", "POST", { id: pending.id, hash, error: null });
+
+      console.log("sent tx:", hash);
+
       const receipt = await waitForTransactionReceipt(walletClient, { hash });
       setLastTxReceipt(receipt);
 
-      await api("/api/transaction/response", "POST", { id: pending.id, hash, error: null });
-
-      setPending(null);
+      console.log("tx receipt:", receipt);
     } catch (e: unknown) {
       const msg =
         typeof e === "object" &&
@@ -111,7 +118,7 @@ export function App() {
           ? (e as { message: string }).message
           : String(e);
 
-      console.log("send failed:", msg);
+      console.error("send failed:", msg);
 
       try {
         await api("/api/transaction/response", "POST", {
@@ -120,12 +127,16 @@ export function App() {
           error: msg,
         });
       } catch {}
-
-      setPending(null);
     }
   };
 
-  const resetClientState = useCallback(async () => {
+  // Reset all client state.
+  const resetClientState = useCallback(() => {
+    if (pollIntervalRef.current) {
+      window.clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+
     setPending(null);
     setLastTxHash(null);
     setLastTxReceipt(null);
@@ -135,9 +146,7 @@ export function App() {
     setChain(undefined);
     setConfirmed(false);
 
-    try {
-      await api("/api/connection", "POST", null);
-    } catch {}
+    void api("/api/connection", "POST", null);
   }, []);
 
   // Upon switching wallets, reset state.
@@ -201,20 +210,34 @@ export function App() {
     };
   }, [selected, confirmed]);
 
+  // Poll for pending transaction requests.
+  // Stops when one is found.
   useEffect(() => {
     if (!confirmed || pending) return;
 
+    let active = true;
+
     const id = window.setInterval(async () => {
+      if (!active) return;
       try {
         const resp = await api<ApiOk<PendingAny> | ApiErr>("/api/transaction/request");
         if (isOk(resp)) {
-          setPending(resp.data);
+          window.clearInterval(id);
+          if (active) {
+            setPending(resp.data);
+          }
         }
       } catch {}
     }, 1000);
 
+    pollIntervalRef.current = id;
+
     return () => {
+      active = false;
       window.clearInterval(id);
+      if (pollIntervalRef.current === id) {
+        pollIntervalRef.current = null;
+      }
     };
   }, [confirmed, pending]);
 
@@ -298,7 +321,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           </>
         )}
 
-        {selected && account && pending && confirmed && (
+        {selected && account && pending && confirmed && !lastTxHash && (
           <button type="button" className="wallet-send" onClick={signAndSendCurrent}>
             Sign & Send
           </button>
