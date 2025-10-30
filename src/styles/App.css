@@ -19,36 +19,30 @@
 
 .banner {
   width: 100%;
-  border-radius: 8px;
   height: auto;
+  border-radius: 8px;
 }
 
-.wallet-selector {
+.wallet-selector,
+.wallet-connect,
+.wallet-send,
+.wallet-confirm {
   align-self: center;
   margin-top: 16px;
 }
 
-.wallet-connect {
-  align-self: center;
-}
-
-.wallet-send {
-  align-self: center;
-}
-
-.wallet-confirm {
-  align-self: center;
+.title,
+.section-title {
+  color: #f8f8f8;
 }
 
 .title {
   font-size: 36px;
-  color: #f8f8f8;
   margin-bottom: 24px;
 }
 
 .section-title {
   font-size: 24px;
-  color: #f8f8f8;
   margin-bottom: 16px;
 }
 

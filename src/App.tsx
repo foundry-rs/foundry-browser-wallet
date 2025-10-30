@@ -50,7 +50,6 @@ export function App() {
 
   const lastPendingIdRef = useRef<string | null>(null);
   const prevSelectedUuidRef = useRef<string | null>(null);
-  const pollFnRef = useRef<() => void>(() => {});
 
   const walletClient = useMemo(() => {
     if (!selected) return undefined;
@@ -88,34 +87,6 @@ export function App() {
     } catch {}
   }, [account, chainId]);
 
-  const pollTick = useCallback(async () => {
-    if (!confirmed) {
-      await ensureServerConnected();
-    }
-
-    try {
-      const resp = await api<ApiOk<PendingAny> | ApiErr>("/api/transaction/request");
-
-      if (!isOk(resp)) {
-        if (pending) {
-          setPending(null);
-          lastPendingIdRef.current = null;
-        }
-      } else {
-        const tx = (resp as ApiOk<PendingAny>).data;
-
-        if (!lastPendingIdRef.current || lastPendingIdRef.current !== tx.id) {
-          setPending(tx);
-          lastPendingIdRef.current = tx.id;
-          setLastTxHash(null);
-          setLastTxReceipt(null);
-        } else if (!pending) {
-          setPending(tx);
-        }
-      }
-    } catch {}
-  }, [ensureServerConnected, pending]);
-
   const connect = async () => {
     if (!selected || confirmed) return;
 
@@ -134,7 +105,15 @@ export function App() {
   };
 
   const confirm = async () => {
-    await ensureServerConnected();
+    if (!account || chainId == null) {
+      return;
+    }
+
+    try {
+      await api("/api/connection", "POST", [account, chainId]);
+    } catch {
+      return;
+    }
 
     setConfirmed(true);
   };
@@ -153,7 +132,8 @@ export function App() {
       setLastTxReceipt(receipt);
 
       await api("/api/transaction/response", "POST", { id: pending.id, hash, error: null });
-      await pollTick();
+
+      setPending(null);
     } catch (e: unknown) {
       const msg =
         typeof e === "object" &&
@@ -173,7 +153,7 @@ export function App() {
         });
       } catch {}
 
-      await pollTick();
+      setPending(null);
     }
   };
 
@@ -255,25 +235,21 @@ export function App() {
   }, [selected, confirmed]);
 
   useEffect(() => {
-    pollFnRef.current = () => {
-      void pollTick();
-    };
-  }, [pollTick]);
+    if (!confirmed || pending) return;
 
-  // Polling loop to check for new pending transactions.
-  useEffect(() => {
-    if (!confirmed) return;
-
-    pollFnRef.current();
-
-    const id = window.setInterval(() => {
-      pollFnRef.current();
+    const id = window.setInterval(async () => {
+      try {
+        const resp = await api<ApiOk<PendingAny> | ApiErr>("/api/transaction/request");
+        if (isOk(resp)) {
+          setPending(resp.data);
+        }
+      } catch {}
     }, 1000);
 
     return () => {
       window.clearInterval(id);
     };
-  }, [confirmed]);
+  }, [confirmed, pending]);
 
   return (
     <div className="wrapper">
@@ -310,7 +286,12 @@ export function App() {
         )}
 
         {selected && account && !confirmed && (
-          <button type="button" className="wallet-confirm" onClick={confirm}>
+          <button
+            type="button"
+            className="wallet-confirm"
+            onClick={confirm}
+            disabled={!account || chainId == null}
+          >
             Confirm Connection
           </button>
         )}
