@@ -1,5 +1,17 @@
 import type { TransactionRequest } from "viem";
 
+declare global {
+  interface Window {
+    __PORTO__?: unknown;
+    __SESSION_TOKEN__?: string;
+  }
+
+  interface WindowEventMap {
+    "eip6963:announceProvider": EIP6963AnnounceProviderEvent;
+    "eip6963:requestProvider": Event;
+  }
+}
+
 export type EIP6963ProviderInfo = {
   uuid: string;
   name: string;
@@ -33,13 +45,8 @@ export interface EIP6963AnnounceProviderEvent extends CustomEvent<EIP6963Provide
   type: "eip6963:announceProvider";
 }
 
-declare global {
-  interface WindowEventMap {
-    "eip6963:announceProvider": EIP6963AnnounceProviderEvent;
-    "eip6963:requestProvider": Event;
-  }
-}
-
 export type ApiOk<T> = { status: "ok"; data: T };
+
 export type ApiErr = { status: string; message?: string };
+
 export type PendingAny = Record<string, unknown> & { id: string; request: TransactionRequest };

@@ -45,10 +45,7 @@ export const api = async <T = unknown>(
     "Content-Type": "application/json",
   };
 
-  const token =
-    typeof window !== "undefined" && (window as any).__SESSION_TOKEN__
-      ? String((window as any).__SESSION_TOKEN__)
-      : null;
+  const token = typeof window !== "undefined" ? window.__SESSION_TOKEN__ : undefined;
 
   if (token) {
     headers["X-Session-Token"] = token;

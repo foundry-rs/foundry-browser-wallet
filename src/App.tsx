@@ -21,12 +21,6 @@ import type {
   PendingAny,
 } from "./utils/types.ts";
 
-declare global {
-  interface Window {
-    __PORTO__?: unknown;
-  }
-}
-
 export function App() {
   useEffect(() => {
     if (!window.__PORTO__) {
