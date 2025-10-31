@@ -3,7 +3,10 @@ import * as chains from "viem/chains";
 
 import type { ApiErr, ApiOk } from "./types";
 
+export const ENDPOINT = "http://127.0.0.1:9545";
+
 export const ALL_CHAINS: readonly Chain[] = Object.freeze(Object.values(chains) as Chain[]);
+
 export const getChainById = (id: number) => ALL_CHAINS.find((c) => c.id === id);
 
 const parseChainId = (input: unknown): number | undefined => {
@@ -33,19 +36,34 @@ export const applyChainId = (
 
 export const toBig = (h?: `0x${string}`) => (h ? hexToBigInt(h) : undefined);
 
-export const ENDPOINT = "http://127.0.0.1:9545";
-
 export const api = async <T = unknown>(
   path: string,
   method: "GET" | "POST" = "GET",
   body?: unknown,
 ): Promise<T> => {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  const token =
+    typeof window !== "undefined" && (window as any).__SESSION_TOKEN__
+      ? String((window as any).__SESSION_TOKEN__)
+      : null;
+
+  if (token) {
+    headers["X-Session-Token"] = token;
+  }
+
   const res = await fetch(`${ENDPOINT}${path}`, {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+
+  if (!res.ok) {
+    throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+  }
+
   try {
     return (await res.json()) as T;
   } catch {
