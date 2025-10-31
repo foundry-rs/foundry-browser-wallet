@@ -12,6 +12,15 @@ declare global {
   }
 }
 
+export type PendingSigning = {
+  id: string;
+  signType: "PersonalSign" | "SignTypedDataV4";
+  request: {
+    message: string;
+    address: string;
+  };
+};
+
 export type EIP6963ProviderInfo = {
   uuid: string;
   name: string;

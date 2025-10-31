@@ -11,7 +11,7 @@ import {
 } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 
-import { api, applyChainId, isOk, renderJSON } from "./utils/helpers.ts";
+import { api, applyChainId, isOk, renderJSON, renderMaybeParsedJSON } from "./utils/helpers.ts";
 import type {
   ApiErr,
   ApiOk,
@@ -19,6 +19,7 @@ import type {
   EIP6963AnnounceProviderEvent,
   EIP6963ProviderInfo,
   PendingAny,
+  PendingSigning,
 } from "./utils/types.ts";
 
 export function App() {
@@ -33,17 +34,21 @@ export function App() {
   );
 
   const [confirmed, setConfirmed] = useState<boolean>(false);
-  const [pending, setPending] = useState<PendingAny | null>(null);
+  const [pendingTx, setPendingTx] = useState<PendingAny | null>(null);
+  const [pendingSigning, setPendingSigning] = useState<PendingSigning | null>(null);
   const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
   const selected = providers.find((p) => p.info.uuid === selectedUuid) ?? null;
 
   const [account, setAccount] = useState<Address>();
   const [chainId, setChainId] = useState<number>();
   const [chain, setChain] = useState<Chain>();
+
   const [lastTxReceipt, setLastTxReceipt] = useState<TransactionReceipt | null>(null);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+  const [lastSignature, setLastSignature] = useState<string | null>(null);
 
-  const pollIntervalRef = useRef<number | null>(null);
+  const pollTxRef = useRef<number | null>(null);
+  const pollSigningRef = useRef<number | null>(null);
   const prevSelectedUuidRef = useRef<string | null>(null);
 
   const connect = async () => {
@@ -79,9 +84,70 @@ export function App() {
     setConfirmed(true);
   };
 
+  const signCurrentMessage = async () => {
+    if (!selected || !pendingSigning) return;
+
+    const { id, signType, request } = pendingSigning;
+    const signer = request.address;
+    const msg = request.message;
+
+    try {
+      let signature: string;
+
+      switch (signType) {
+        case "PersonalSign":
+          // Standard message signing
+          signature = (await selected.provider.request({
+            method: "personal_sign",
+            params: [msg, signer],
+          })) as string;
+          break;
+
+        case "SignTypedDataV4":
+          // EIP-712 typed data signing
+          signature = (await selected.provider.request({
+            method: "eth_signTypedData_v4",
+            params: [signer, msg],
+          })) as string;
+          break;
+
+        default:
+          throw new Error(`Unsupported signType: ${signType}`);
+      }
+
+      await api("/api/signing/response", "POST", {
+        id,
+        signature,
+        error: null,
+      });
+
+      setLastSignature(signature);
+      setPendingSigning(null);
+    } catch (e: unknown) {
+      const errMsg =
+        typeof e === "object" &&
+        e &&
+        "message" in e &&
+        typeof (e as { message?: unknown }).message === "string"
+          ? (e as { message: string }).message
+          : String(e);
+
+      try {
+        await api("/api/signing/response", "POST", {
+          id,
+          signature: null,
+          error: errMsg,
+        });
+      } catch {}
+
+      setLastSignature(null);
+      setPendingSigning(null);
+    }
+  };
+
   // Sign and send the current pending transaction.
-  const signAndSendCurrent = async () => {
-    if (!selected || !pending?.request) return;
+  const signAndSendCurrentTx = async () => {
+    if (!selected || !pendingTx?.request) return;
 
     const walletClient = createWalletClient({
       transport: custom(selected.provider),
@@ -91,18 +157,14 @@ export function App() {
     try {
       const hash = (await selected.provider.request({
         method: "eth_sendTransaction",
-        params: [pending.request],
+        params: [pendingTx.request],
       })) as `0x${string}`;
       setLastTxHash(hash);
 
-      await api("/api/transaction/response", "POST", { id: pending.id, hash, error: null });
-
-      console.log("sent tx:", hash);
+      await api("/api/transaction/response", "POST", { id: pendingTx.id, hash, error: null });
 
       const receipt = await waitForTransactionReceipt(walletClient, { hash });
       setLastTxReceipt(receipt);
-
-      console.log("tx receipt:", receipt);
     } catch (e: unknown) {
       const msg =
         typeof e === "object" &&
@@ -116,7 +178,7 @@ export function App() {
 
       try {
         await api("/api/transaction/response", "POST", {
-          id: pending.id,
+          id: pendingTx.id,
           hash: null,
           error: msg,
         });
@@ -126,12 +188,18 @@ export function App() {
 
   // Reset all client state.
   const resetClientState = useCallback(() => {
-    if (pollIntervalRef.current) {
-      window.clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
+    if (pollTxRef.current) {
+      window.clearInterval(pollTxRef.current);
+      pollTxRef.current = null;
     }
 
-    setPending(null);
+    if (pollSigningRef.current) {
+      window.clearInterval(pollSigningRef.current);
+      pollSigningRef.current = null;
+    }
+
+    setPendingTx(null);
+    setPendingSigning(null);
     setLastTxHash(null);
     setLastTxReceipt(null);
 
@@ -205,9 +273,9 @@ export function App() {
   }, [selected, confirmed]);
 
   // Poll for pending transaction requests.
-  // Stops when one is found.
+  // Stops when one is found or when a pending signing request is found.
   useEffect(() => {
-    if (!confirmed || pending) return;
+    if (!confirmed || pendingTx || pendingSigning) return;
 
     let active = true;
 
@@ -218,27 +286,60 @@ export function App() {
         if (isOk(resp)) {
           window.clearInterval(id);
           if (active) {
-            setPending(resp.data);
+            setPendingTx(resp.data);
           }
         }
       } catch {}
     }, 1000);
 
-    pollIntervalRef.current = id;
+    pollTxRef.current = id;
 
     return () => {
       active = false;
       window.clearInterval(id);
-      if (pollIntervalRef.current === id) {
-        pollIntervalRef.current = null;
+      if (pollTxRef.current === id) {
+        pollTxRef.current = null;
       }
     };
-  }, [confirmed, pending]);
+  }, [confirmed, pendingTx, pendingSigning]);
+
+  // Poll for pending signing requests.
+  // Stops when one is found or when a pending transaction request is found.
+  useEffect(() => {
+    if (!confirmed || pendingSigning || pendingTx) return;
+
+    let active = true;
+
+    const id = window.setInterval(async () => {
+      if (!active) return;
+      try {
+        const resp = await api<ApiOk<PendingSigning> | ApiErr>("/api/signing/request");
+        if (isOk(resp)) {
+          window.clearInterval(id);
+          if (active) {
+            setPendingSigning(resp.data);
+          }
+        }
+      } catch {}
+    }, 1000);
+
+    pollSigningRef.current = id;
+
+    return () => {
+      active = false;
+      window.clearInterval(id);
+      if (pollSigningRef.current === id) {
+        pollSigningRef.current = null;
+      }
+    };
+  }, [confirmed, pendingSigning, pendingTx]);
 
   return (
     <div className="wrapper">
       <div className="container">
-        <div className="notice">Browser wallet is still in early development. Use with caution!</div>
+        <div className="notice">
+          Browser wallet is still in early development. Use with caution!
+        </div>
 
         <img className="banner" src="banner.png" alt="Foundry Browser Wallet" />
 
@@ -294,12 +395,42 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           </>
         )}
 
-        {selected && account && confirmed && !lastTxHash && (
+        {selected &&
+          account &&
+          confirmed &&
+          !pendingTx &&
+          !pendingSigning &&
+          !lastTxHash &&
+          !lastSignature && (
+            <>
+              <div className="section-title">Transaction To Sign</div>
+              <div className="box">
+                <pre>No pending transaction or signing request</pre>
+              </div>
+            </>
+          )}
+
+        {selected && account && confirmed && !lastTxHash && pendingTx && (
           <>
-            <div className="section-title">To Sign</div>
+            <div className="section-title">Transaction to Sign & Send</div>
             <div className="box">
-              <pre>{pending ? renderJSON(pending) : "No pending transaction"}</pre>
+              <pre>{renderJSON(pendingTx.request)}</pre>
             </div>
+            <button type="button" className="wallet-send" onClick={signAndSendCurrentTx}>
+              Sign &amp; Send
+            </button>
+          </>
+        )}
+
+        {selected && account && confirmed && !pendingTx && pendingSigning && (
+          <>
+            <div className="section-title">Message / Data to Sign</div>
+            <div className="box">
+              <pre>{renderMaybeParsedJSON(pendingSigning.request)}</pre>
+            </div>
+            <button type="button" className="wallet-send" onClick={signCurrentMessage}>
+              Sign
+            </button>
           </>
         )}
 
@@ -317,10 +448,11 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           </>
         )}
 
-        {selected && account && pending && confirmed && !lastTxHash && (
-          <button type="button" className="wallet-send" onClick={signAndSendCurrent}>
-            Sign & Send
-          </button>
+        {selected && account && confirmed && lastSignature && (
+          <>
+            <div className="section-title">Signature Result</div>
+            <pre className="box">{lastSignature}</pre>
+          </>
         )}
       </div>
     </div>

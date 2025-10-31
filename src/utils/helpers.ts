@@ -71,6 +71,24 @@ export const api = async <T = unknown>(
 export const renderJSON = (obj: unknown) =>
   JSON.stringify(obj, (_k, v) => (typeof v === "bigint" ? v.toString() : v), 2);
 
+export const renderMaybeParsedJSON = (value: unknown): string => {
+  if (value == null) return renderJSON(value);
+
+  if (typeof value === "object" && "message" in value && typeof (value as any).message === "string") {
+    const obj = value as { message: string };
+
+    try {
+      const parsed = JSON.parse(obj.message);
+
+      return renderJSON({ ...value, message: parsed });
+    } catch {
+      return renderJSON(value);
+    }
+  }
+
+  return renderJSON(value);
+};
+
 export const isOk = <T>(r: ApiOk<T> | ApiErr | null | undefined): r is ApiOk<T> => {
   return !!r && (r as ApiOk<T>).status === "ok";
 };
