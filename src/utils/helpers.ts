@@ -74,12 +74,15 @@ export const renderJSON = (obj: unknown) =>
 export const renderMaybeParsedJSON = (value: unknown): string => {
   if (value == null) return renderJSON(value);
 
-  if (typeof value === "object" && "message" in value && typeof (value as any).message === "string") {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "message" in value &&
+    typeof (value as Record<string, unknown>).message === "string"
+  ) {
     const obj = value as { message: string };
-
     try {
       const parsed = JSON.parse(obj.message);
-
       return renderJSON({ ...value, message: parsed });
     } catch {
       return renderJSON(value);
