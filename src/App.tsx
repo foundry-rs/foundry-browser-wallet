@@ -238,6 +238,8 @@ export function App() {
   return (
     <div className="wrapper">
       <div className="container">
+        <div className="notice">Browser wallet is still in early development. Use with caution!</div>
+
         <img className="banner" src="banner.png" alt="Foundry Browser Wallet" />
 
         {providers.length > 1 && (

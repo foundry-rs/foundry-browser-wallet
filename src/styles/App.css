@@ -17,6 +17,18 @@
   border-radius: 8px;
 }
 
+.notice {
+  width: 100%;
+  background-color: #ffcc00;
+  color: #333;
+  text-align: center;
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-weight: bold;
+  font-size: 13px;
+}
+
 .banner {
   width: 100%;
   height: auto;
