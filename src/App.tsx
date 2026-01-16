@@ -151,7 +151,7 @@ export function App() {
 
     const walletClient = createWalletClient({
       transport: custom(selected.provider),
-      chain: chain ?? undefined,
+      chain,
     });
 
     try {
@@ -166,7 +166,7 @@ export function App() {
         ...(input ? { data: input as `0x${string}` } : {}),
         // Only include 'to' if it's not null (contract creation)
         ...(to ? { to: to as Address } : {}),
-        chain: undefined,
+        chain,
       });
 
       setLastTxHash(hash);
