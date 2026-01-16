@@ -155,10 +155,20 @@ export function App() {
     });
 
     try {
-      const hash = (await selected.provider.request({
-        method: "eth_sendTransaction",
-        params: [pendingTx.request],
-      })) as `0x${string}`;
+      const request = pendingTx.request as Record<string, unknown>;
+      const { from, input, to, ...txFields } = request;
+
+      const hash = await walletClient.sendTransaction({
+        ...txFields,
+        // Viem uses 'account' instead of 'from' at the action level
+        account: (from as Address) || (await walletClient.getAddresses())[0],
+        // Viem uses 'data' for contract bytecode (from 'input' field in the API)
+        ...(input ? { data: input as `0x${string}` } : {}),
+        // Only include 'to' if it's not null (contract creation)
+        ...(to ? { to: to as Address } : {}),
+        chain: undefined,
+      });
+
       setLastTxHash(hash);
 
       await api("/api/transaction/response", "POST", { id: pendingTx.id, hash, error: null });
