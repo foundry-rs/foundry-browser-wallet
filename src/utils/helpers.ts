@@ -31,7 +31,32 @@ export const applyChainId = (
 ) => {
   const id = parseChainId(raw);
   setChainId(id);
-  setChain(id != null ? getChainById(id) : undefined);
+  
+  if (id != null) {
+    let chain = getChainById(id);
+    
+    // If chain not found in viem's predefined list, create a custom chain object
+    if (!chain) {
+      chain = {
+        id,
+        name: `Chain ${id}`,
+        network: `chain-${id}`,
+        nativeCurrency: {
+          decimals: 18,
+          name: 'Ether',
+          symbol: 'ETH',
+        },
+        rpcUrls: {
+          default: { http: [] },
+          public: { http: [] },
+        },
+      } as Chain;
+    }
+    
+    setChain(chain);
+  } else {
+    setChain(undefined);
+  }
 };
 
 export const toBig = (h?: `0x${string}`) => (h ? hexToBigInt(h) : undefined);
