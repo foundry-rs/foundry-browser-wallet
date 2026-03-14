@@ -31,10 +31,10 @@ export const applyChainId = (
 ) => {
   const id = parseChainId(raw);
   setChainId(id);
-  
+
   if (id != null) {
     let chain = getChainById(id);
-    
+
     // If chain not found in viem's predefined list, create a custom chain object
     if (!chain) {
       chain = {
@@ -43,8 +43,8 @@ export const applyChainId = (
         network: `chain-${id}`,
         nativeCurrency: {
           decimals: 18,
-          name: 'Ether',
-          symbol: 'ETH',
+          name: "Ether",
+          symbol: "ETH",
         },
         rpcUrls: {
           default: { http: [] },
@@ -52,7 +52,7 @@ export const applyChainId = (
         },
       } as Chain;
     }
-    
+
     setChain(chain);
   } else {
     setChain(undefined);
