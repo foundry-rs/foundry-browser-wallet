@@ -423,24 +423,24 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
         {selected && account && confirmed && !lastTxHash && pendingTx && (
           <>
             <div className="section-title">Transaction to Sign & Send</div>
-            <div className="box">
-              <pre>{renderJSON(pendingTx.request)}</pre>
-            </div>
             <button type="button" className="wallet-send" onClick={signAndSendCurrentTx}>
               Sign &amp; Send
             </button>
+            <div className="box">
+              <pre>{renderJSON(pendingTx.request)}</pre>
+            </div>
           </>
         )}
 
         {selected && account && confirmed && !pendingTx && pendingSigning && (
           <>
             <div className="section-title">Message / Data to Sign</div>
-            <div className="box">
-              <pre>{renderMaybeParsedJSON(pendingSigning.request)}</pre>
-            </div>
             <button type="button" className="wallet-send" onClick={signCurrentMessage}>
               Sign
             </button>
+            <div className="box">
+              <pre>{renderMaybeParsedJSON(pendingSigning.request)}</pre>
+            </div>
           </>
         )}
 

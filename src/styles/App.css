@@ -43,6 +43,10 @@
   margin-top: 16px;
 }
 
+.wallet-send {
+  margin-bottom: 16px;
+}
+
 .title,
 .section-title {
   color: #f8f8f8;
