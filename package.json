@@ -18,7 +18,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "viem": "^2.38.3",
-    "vite-plugin-mkcert": "^1.17.9"
+    "vite-plugin-mkcert": "^1.17.10"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.1",
