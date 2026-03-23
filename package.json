@@ -29,14 +29,5 @@
     "husky": "^9.1.7",
     "typescript": "~5.9.3",
     "vite": "^8.0.1"
-  },
-  "pnpm": {
-    "ignoredBuiltDependencies": [
-      "bufferutil",
-      "utf-8-validate"
-    ],
-    "onlyBuiltDependencies": [
-      "@swc/core"
-    ]
   }
 }
