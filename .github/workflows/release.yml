@@ -46,7 +46,7 @@ jobs:
             git push origin "$tag"
           fi
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         with:
           version: latest
           run_install: false
