@@ -28,6 +28,6 @@
     "@vitejs/plugin-react-swc": "^4.3.0",
     "husky": "^9.1.7",
     "typescript": "~5.9.3",
-    "vite": "^8.0.1"
+    "vite": "^8.0.2"
   }
 }
