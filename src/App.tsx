@@ -11,7 +11,15 @@ import {
 } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 
-import { api, applyChainId, isOk, renderJSON, renderMaybeParsedJSON } from "./utils/helpers.ts";
+import {
+  api,
+  applyChainId,
+  isOk,
+  renderJSON,
+  renderMaybeParsedJSON,
+  toBig,
+  toNonce,
+} from "./utils/helpers.ts";
 import type {
   ApiErr,
   ApiOk,
@@ -156,7 +164,32 @@ export function App() {
 
     try {
       const request = pendingTx.request as Record<string, unknown>;
-      const { from, input, to, ...txFields } = request;
+      const {
+        from,
+        input,
+        to,
+        maxFeePerGas,
+        maxPriorityFeePerGas,
+        gasPrice,
+        gas,
+        nonce,
+        value,
+        ...txFields
+      } = request;
+
+      // Convert hex-encoded numeric fields to BigInt/number for viem compatibility.
+      // gasPrice (legacy) and EIP-1559 fee fields are mutually exclusive.
+      const feeFields =
+        maxFeePerGas || maxPriorityFeePerGas
+          ? {
+              ...(maxFeePerGas ? { maxFeePerGas: toBig(maxFeePerGas as `0x${string}`) } : {}),
+              ...(maxPriorityFeePerGas
+                ? { maxPriorityFeePerGas: toBig(maxPriorityFeePerGas as `0x${string}`) }
+                : {}),
+            }
+          : {
+              ...(gasPrice ? { gasPrice: toBig(gasPrice as `0x${string}`) } : {}),
+            };
 
       const hash = await walletClient.sendTransaction({
         ...txFields,
@@ -166,6 +199,10 @@ export function App() {
         ...(input ? { data: input as `0x${string}` } : {}),
         // Only include 'to' if it's not null (contract creation)
         ...(to ? { to: to as Address } : {}),
+        ...feeFields,
+        ...(gas ? { gas: toBig(gas as `0x${string}`) } : {}),
+        ...(nonce ? { nonce: toNonce(nonce as `0x${string}`) } : {}),
+        ...(value ? { value: toBig(value as `0x${string}`) } : {}),
         chain,
       });
 
