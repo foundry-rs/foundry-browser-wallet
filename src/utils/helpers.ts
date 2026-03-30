@@ -1,4 +1,4 @@
-import { type Chain, hexToBigInt } from "viem";
+import { type Chain, fromHex, hexToBigInt } from "viem";
 import * as chains from "viem/chains";
 
 import type { ApiErr, ApiOk } from "./types";
@@ -60,6 +60,8 @@ export const applyChainId = (
 };
 
 export const toBig = (h?: `0x${string}`) => (h ? hexToBigInt(h) : undefined);
+
+export const toNonce = (h?: `0x${string}`) => (h ? fromHex(h, "number") : undefined);
 
 export const api = async <T = unknown>(
   path: string,
