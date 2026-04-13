@@ -7,7 +7,7 @@ export default defineConfig({
   build: {
     outDir: "dist",
     assetsDir: ".",
-    sourcemap: true,
+    sourcemap: false,
     cssCodeSplit: false,
     modulePreload: false,
     rollupOptions: {
