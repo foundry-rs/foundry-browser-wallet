@@ -1,6 +1,5 @@
 import "./styles/App.css";
 
-import { Porto } from "porto";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type Address,
@@ -31,12 +30,6 @@ import type {
 } from "./utils/types.ts";
 
 export function App() {
-  useEffect(() => {
-    if (!window.__PORTO__) {
-      window.__PORTO__ = Porto.create();
-    }
-  }, []);
-
   const [providers, setProviders] = useState<{ info: EIP6963ProviderInfo; provider: EIP1193 }[]>(
     [],
   );
