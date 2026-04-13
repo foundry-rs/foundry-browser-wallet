@@ -28,5 +28,10 @@
     "husky": "^9.1.7",
     "typescript": "~5.9.3",
     "vite": "^8.0.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "hono": ">=4.12.12"
+    }
   }
 }
