@@ -174,8 +174,15 @@ export function App() {
         gas,
         nonce,
         value,
+        calls,
         ...txFields
       } = request;
+
+      // The Tempo accounts SDK's eth_sendTransaction handler uses nullish coalescing
+      // to fall back from calls[] to {to, data} — but an empty array [] is truthy
+      // and bypasses the fallback. Omit calls when empty so the SDK correctly
+      // converts to+data into a call entry.
+      const resolvedCalls = Array.isArray(calls) && calls.length > 0 ? { calls } : {};
 
       // Convert hex-encoded numeric fields to BigInt/number for viem compatibility.
       // gasPrice (legacy) and EIP-1559 fee fields are mutually exclusive.
@@ -193,6 +200,7 @@ export function App() {
 
       const hash = await walletClient.sendTransaction({
         ...txFields,
+        ...resolvedCalls,
         // Viem uses 'account' instead of 'from' at the action level
         account: (from as Address) || (await walletClient.getAddresses())[0],
         // Viem uses 'data' for contract bytecode (from 'input' field in the API)
