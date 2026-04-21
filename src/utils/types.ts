@@ -2,6 +2,7 @@ import type { TransactionRequest } from "viem";
 
 declare global {
   interface Window {
+    __ACCOUNTS_PROVIDER__?: unknown;
     __SESSION_TOKEN__?: string;
   }
 
