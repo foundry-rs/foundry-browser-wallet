@@ -14,19 +14,19 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "accounts": "^0.7.1",
+    "accounts": "^0.8.3",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "viem": "^2.48.3"
+    "viem": "^2.48.4"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.12",
+    "@biomejs/biome": "^2.4.13",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react-swc": "^4.3.0",
     "husky": "^9.1.7",
     "typescript": "~5.9.3",
-    "vite": "^8.0.9"
+    "vite": "^8.0.10"
   }
 }
