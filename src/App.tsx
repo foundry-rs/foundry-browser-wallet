@@ -51,6 +51,7 @@ export function App() {
 
   const [pendingTx, setPendingTx] = useState<PendingAny | null>(null);
   const [pendingSigning, setPendingSigning] = useState<PendingSigning | null>(null);
+  const [isSending, setIsSending] = useState<boolean>(false);
 
   // In-session history of every signed transaction and message. Flushed on
   // page reload (issue foundry-rs/foundry-browser-wallet#17).
@@ -150,7 +151,8 @@ export function App() {
   /// immediately after the wallet returns a hash so the poller can pick up
   /// the next request without waiting for the receipt.
   const signAndSendCurrentTx = async () => {
-    if (!selected || !pendingTx?.request) return;
+    if (!selected || !pendingTx?.request || !sessionAlive || isSending) return;
+    setIsSending(true);
 
     const id = pendingTx.id;
     const reqRecord = pendingTx.request as Record<string, unknown>;
@@ -233,6 +235,7 @@ export function App() {
 
       updateHistory(id, "tx", { status: "failed", error: msg });
       setPendingTx(null);
+      setIsSending(false);
       return;
     }
 
@@ -240,6 +243,7 @@ export function App() {
     // immediately for the next request.
     updateHistory(id, "tx", { status: "sent", hash });
     setPendingTx(null);
+    setIsSending(false);
 
     // Fetch the receipt in the background; it'll update the entry when
     // ready. Failures here only affect the displayed receipt, never the
@@ -257,7 +261,8 @@ export function App() {
 
   /// Sign the current pending message / typed data.
   const signCurrentMessage = async () => {
-    if (!selected || !pendingSigning) return;
+    if (!selected || !pendingSigning || !sessionAlive || isSending) return;
+    setIsSending(true);
 
     const { id, signType, request } = pendingSigning;
     const signer = request.address;
@@ -305,6 +310,7 @@ export function App() {
       updateHistory(id, "sign", { status: "failed", error: msg });
     } finally {
       setPendingSigning(null);
+      setIsSending(false);
     }
   };
 
@@ -536,14 +542,14 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           </>
         )}
 
-        {selected && account && confirmed && pendingTx && (
+        {selected && account && confirmed && sessionAlive && pendingTx && (
           <>
             <div className="section-title">Transaction to Sign &amp; Send</div>
             <div className="action-row">
-              <button type="button" className="btn btn-primary" onClick={signAndSendCurrentTx}>
+              <button type="button" className="btn btn-primary" onClick={signAndSendCurrentTx} disabled={isSending}>
                 Sign &amp; Send
               </button>
-              <button type="button" className="btn btn-danger" onClick={() => void rejectCurrent()}>
+              <button type="button" className="btn btn-danger" onClick={() => void rejectCurrent()} disabled={isSending}>
                 Reject
               </button>
             </div>
@@ -553,14 +559,14 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           </>
         )}
 
-        {selected && account && confirmed && !pendingTx && pendingSigning && (
+        {selected && account && confirmed && sessionAlive && !pendingTx && pendingSigning && (
           <>
             <div className="section-title">Message / Data to Sign</div>
             <div className="action-row">
-              <button type="button" className="btn btn-primary" onClick={signCurrentMessage}>
+              <button type="button" className="btn btn-primary" onClick={signCurrentMessage} disabled={isSending}>
                 Sign
               </button>
-              <button type="button" className="btn btn-danger" onClick={() => void rejectCurrent()}>
+              <button type="button" className="btn btn-danger" onClick={() => void rejectCurrent()} disabled={isSending}>
                 Reject
               </button>
             </div>
