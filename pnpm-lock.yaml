@@ -10,7 +10,7 @@ importers:
     dependencies:
       accounts:
         specifier: ^0.8.3
-        version: 0.8.3(@types/react@19.2.14)(react@19.2.5)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.3.6))
+        version: 0.8.9(@types/react@19.2.14)(react@19.2.5)(typescript@5.9.3)(viem@2.48.7(typescript@5.9.3)(zod@4.4.1))
       react:
         specifier: ^19.2.5
         version: 19.2.5
@@ -19,7 +19,7 @@ importers:
         version: 19.2.5(react@19.2.5)
       viem:
         specifier: ^2.48.4
-        version: 2.48.4(typescript@5.9.3)(zod@4.3.6)
+        version: 2.48.7(typescript@5.9.3)(zod@4.4.1)
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.4.13
@@ -33,9 +33,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.14)
-      '@vitejs/plugin-react-swc':
-        specifier: ^4.3.0
-        version: 4.3.0(vite@8.0.10(@types/node@25.6.0)(yaml@2.8.3))
+      '@vitejs/plugin-react':
+        specifier: ^6.0.1
+        version: 6.0.1(vite@8.0.10(@types/node@25.6.0)(yaml@2.8.3))
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -257,99 +257,6 @@ packages:
   '@scure/bip39@1.6.0':
     resolution: {integrity: sha512-+lF0BbLiJNwVlev4eKelw1WWLaiKXw7sSl8T6FvBlWkdX+94aGJ4o8XjUdlyhTCjd8c+B3KT3JfS8P0bLRNU6A==}
 
-  '@swc/core-darwin-arm64@1.15.21':
-    resolution: {integrity: sha512-SA8SFg9dp0qKRH8goWsax6bptFE2EdmPf2YRAQW9WoHGf3XKM1bX0nd5UdwxmC5hXsBUZAYf7xSciCler6/oyA==}
-    engines: {node: '>=10'}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@swc/core-darwin-x64@1.15.21':
-    resolution: {integrity: sha512-//fOVntgowz9+V90lVsNCtyyrtbHp3jWH6Rch7MXHXbcvbLmbCTmssl5DeedUWLLGiAAW1wksBdqdGYOTjaNLw==}
-    engines: {node: '>=10'}
-    cpu: [x64]
-    os: [darwin]
-
-  '@swc/core-linux-arm-gnueabihf@1.15.21':
-    resolution: {integrity: sha512-meNI4Sh6h9h8DvIfEc0l5URabYMSuNvyisLmG6vnoYAS43s8ON3NJR8sDHvdP7NJTrLe0q/x2XCn6yL/BeHcZg==}
-    engines: {node: '>=10'}
-    cpu: [arm]
-    os: [linux]
-
-  '@swc/core-linux-arm64-gnu@1.15.21':
-    resolution: {integrity: sha512-QrXlNQnHeXqU2EzLlnsPoWEh8/GtNJLvfMiPsDhk+ht6Xv8+vhvZ5YZ/BokNWSIZiWPKLAqR0M7T92YF5tmD3g==}
-    engines: {node: '>=10'}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
-  '@swc/core-linux-arm64-musl@1.15.21':
-    resolution: {integrity: sha512-8/yGCMO333ultDaMQivE5CjO6oXDPeeg1IV4sphojPkb0Pv0i6zvcRIkgp60xDB+UxLr6VgHgt+BBgqS959E9g==}
-    engines: {node: '>=10'}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
-
-  '@swc/core-linux-ppc64-gnu@1.15.21':
-    resolution: {integrity: sha512-ucW0HzPx0s1dgRvcvuLSPSA/2Kk/VYTv9st8qe1Kc22Gu0Q0rH9+6TcBTmMuNIp0Xs4BPr1uBttmbO1wEGI49Q==}
-    engines: {node: '>=10'}
-    cpu: [ppc64]
-    os: [linux]
-    libc: [glibc]
-
-  '@swc/core-linux-s390x-gnu@1.15.21':
-    resolution: {integrity: sha512-ulTnOGc5I7YRObE/9NreAhQg94QkiR5qNhhcUZ1iFAYjzg/JGAi1ch+s/Ixe61pMIr8bfVrF0NOaB0f8wjaAfA==}
-    engines: {node: '>=10'}
-    cpu: [s390x]
-    os: [linux]
-    libc: [glibc]
-
-  '@swc/core-linux-x64-gnu@1.15.21':
-    resolution: {integrity: sha512-D0RokxtM+cPvSqJIKR6uja4hbD+scI9ezo95mBhfSyLUs9wnPPl26sLp1ZPR/EXRdYm3F3S6RUtVi+8QXhT24Q==}
-    engines: {node: '>=10'}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
-
-  '@swc/core-linux-x64-musl@1.15.21':
-    resolution: {integrity: sha512-nER8u7VeRfmU6fMDzl1NQAbbB/G7O2avmvCOwIul1uGkZ2/acbPH+DCL9h5+0yd/coNcxMBTL6NGepIew+7C2w==}
-    engines: {node: '>=10'}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
-  '@swc/core-win32-arm64-msvc@1.15.21':
-    resolution: {integrity: sha512-+/AgNBnjYugUA8C0Do4YzymgvnGbztv7j8HKSQLvR/DQgZPoXQ2B3PqB2mTtGh/X5DhlJWiqnunN35JUgWcAeQ==}
-    engines: {node: '>=10'}
-    cpu: [arm64]
-    os: [win32]
-
-  '@swc/core-win32-ia32-msvc@1.15.21':
-    resolution: {integrity: sha512-IkSZj8PX/N4HcaFhMQtzmkV8YSnuNoJ0E6OvMwFiOfejPhiKXvl7CdDsn1f4/emYEIDO3fpgZW9DTaCRMDxaDA==}
-    engines: {node: '>=10'}
-    cpu: [ia32]
-    os: [win32]
-
-  '@swc/core-win32-x64-msvc@1.15.21':
-    resolution: {integrity: sha512-zUyWso7OOENB6e1N1hNuNn8vbvLsTdKQ5WKLgt/JcBNfJhKy/6jmBmqI3GXk/MyvQKd5SLvP7A0F36p7TeDqvw==}
-    engines: {node: '>=10'}
-    cpu: [x64]
-    os: [win32]
-
-  '@swc/core@1.15.21':
-    resolution: {integrity: sha512-fkk7NJcBscrR3/F8jiqlMptRHP650NxqDnspBMrRe5d8xOoCy9MLL5kOBLFXjFLfMo3KQQHhk+/jUULOMlR1uQ==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      '@swc/helpers': '>=0.5.17'
-    peerDependenciesMeta:
-      '@swc/helpers':
-        optional: true
-
-  '@swc/counter@0.1.3':
-    resolution: {integrity: sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==}
-
-  '@swc/types@0.1.25':
-    resolution: {integrity: sha512-iAoY/qRhNH8a/hBvm3zKj9qQ4oc2+3w1unPJa2XvTK3XjeLXtzcCingVPw/9e5mn1+0yPqxcBGp9Jf0pkfMb1g==}
-
   '@toon-format/toon@2.1.0':
     resolution: {integrity: sha512-JwWptdF5eOA0HaQxbKAzkpQtR4wSWTEfDlEy/y3/4okmOAX1qwnpLZMmtEWr+ncAhTTY1raCKH0kteHhSXnQqg==}
 
@@ -367,11 +274,18 @@ packages:
   '@types/react@19.2.14':
     resolution: {integrity: sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w==}
 
-  '@vitejs/plugin-react-swc@4.3.0':
-    resolution: {integrity: sha512-mOkXCII839dHyAt/gpoSlm28JIVDwhZ6tnG6wJxUy2bmOx7UaPjvOyIDf3SFv5s7Eo7HVaq6kRcu6YMEzt5Z7w==}
+  '@vitejs/plugin-react@6.0.1':
+    resolution: {integrity: sha512-l9X/E3cDb+xY3SWzlG1MOGt2usfEHGMNIaegaUGFsLkb3RCn/k8/TOXBcab+OndDI4TBtktT8/9BwwW8Vi9KUQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
-      vite: ^4 || ^5 || ^6 || ^7 || ^8
+      '@rolldown/plugin-babel': ^0.1.7 || ^0.2.0
+      babel-plugin-react-compiler: ^1.0.0
+      vite: ^8.0.0
+    peerDependenciesMeta:
+      '@rolldown/plugin-babel':
+        optional: true
+      babel-plugin-react-compiler:
+        optional: true
 
   abitype@1.2.3:
     resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
@@ -395,8 +309,8 @@ packages:
       zod:
         optional: true
 
-  accounts@0.8.3:
-    resolution: {integrity: sha512-88EzNeeCyJg9JavgLz8QxO6SDQN/SvuwxN1xgZtUGrFz+YkYKCvkJdORfUnk9RpofvbhoCp9mEXS8whDA+1iGA==}
+  accounts@0.8.9:
+    resolution: {integrity: sha512-Dip1lJRgFeeUMwl2IykdXiH1lFxaMNROiX/nLgJ1pqXVeo2l3RXSz9oOhNLWpbKlcIqJFDlxmkKWtw4De+oryw==}
     peerDependencies:
       '@react-native-async-storage/async-storage': ^3.0.2
       '@wagmi/core': '>=3.4.3'
@@ -445,8 +359,8 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  hono@4.12.15:
-    resolution: {integrity: sha512-qM0jDhFEaCBb4TxoW7f53Qrpv9RBiayUHo0S52JudprkhvpjIrGoU1mnnr29Fvd1U335ZFPZQY1wlkqgfGXyLg==}
+  hono@4.12.16:
+    resolution: {integrity: sha512-jN0ZewiNAWSe5khM3EyCmBb250+b40wWbwNILNfEvq84VREWwOIkuUsFONk/3i3nqkz7Oe1PcpM2mwQEK2L9Kg==}
     engines: {node: '>=16.9.0'}
 
   idb-keyval@6.2.2:
@@ -563,8 +477,8 @@ packages:
       hono:
         optional: true
 
-  nanoid@3.3.11:
-    resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
+  nanoid@3.3.12:
+    resolution: {integrity: sha512-ZB9RH/39qpq5Vu6Y+NmUaFhQR6pp+M2Xt76XBnEwDaGcVAqhlvxrl3B2bKS5D3NH3QR76v3aSrKaF/Kiy7lEtQ==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
@@ -591,8 +505,8 @@ packages:
     resolution: {integrity: sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==}
     engines: {node: '>=12'}
 
-  postcss@8.5.12:
-    resolution: {integrity: sha512-W62t/Se6rA0Az3DfCL0AqJwXuKwBeYg6nOaIgzP+xZ7N5BFCI7DYi1qs6ygUYT6rvfi6t9k65UMLJC+PHZpDAA==}
+  postcss@8.5.13:
+    resolution: {integrity: sha512-qif0+jGGZoLWdHey3UFHHWP0H7Gbmsk8T5VEqyYFbWqPr1XqvLGBbk/sl8V5exGmcYJklJOhOQq1pV9IcsiFag==}
     engines: {node: ^10 || ^12 || >=14}
 
   react-dom@19.2.5:
@@ -634,8 +548,8 @@ packages:
   undici-types@7.19.2:
     resolution: {integrity: sha512-qYVnV5OEm2AW8cJMCpdV20CDyaN3g0AjDlOGf1OW4iaDEx8MwdtChUp4zu4H0VP3nDRF/8RKWH+IPp9uW0YGZg==}
 
-  viem@2.48.4:
-    resolution: {integrity: sha512-mReP/rgY2P+WeeRSG4sUvccCLKfyAW1C73Y3KkobAqgzYmVna9qyUMNE44xIUkDtfvRuC33r24UhF4baBYovsg==}
+  viem@2.48.7:
+    resolution: {integrity: sha512-auLZcv/FtIeuqtDcW4Kdhw4NeRPWgLUcWSO5oz4tG6UE4/bHOBHEfm0TtLV+/j71r5MM/eURvFiYzjYVayrExA==}
     peerDependencies:
       typescript: '>=5.0.4'
     peerDependenciesMeta:
@@ -705,8 +619,8 @@ packages:
     engines: {node: '>= 14.6'}
     hasBin: true
 
-  zod@4.3.6:
-    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
+  zod@4.4.1:
+    resolution: {integrity: sha512-a6ENMBBGZBsnlSebQ/eKCguSBeGKSf4O7BPnqVPmYGtpBYI7VSqoVqw+QcB7kPRjbqPwhYTpFbVj/RqNz/CT0Q==}
 
   zustand@5.0.12:
     resolution: {integrity: sha512-i77ae3aZq4dhMlRhJVCYgMLKuSiZAaUPAct2AksxQ+gOtimhGMdXljRT21P5BNpeT4kXlLIckvkPM029OljD7g==}
@@ -785,7 +699,7 @@ snapshots:
 
   '@modelcontextprotocol/server@2.0.0-alpha.2(@cfworker/json-schema@4.1.1)':
     dependencies:
-      zod: 4.3.6
+      zod: 4.4.1
     optionalDependencies:
       '@cfworker/json-schema': 4.1.1
 
@@ -872,66 +786,6 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 
-  '@swc/core-darwin-arm64@1.15.21':
-    optional: true
-
-  '@swc/core-darwin-x64@1.15.21':
-    optional: true
-
-  '@swc/core-linux-arm-gnueabihf@1.15.21':
-    optional: true
-
-  '@swc/core-linux-arm64-gnu@1.15.21':
-    optional: true
-
-  '@swc/core-linux-arm64-musl@1.15.21':
-    optional: true
-
-  '@swc/core-linux-ppc64-gnu@1.15.21':
-    optional: true
-
-  '@swc/core-linux-s390x-gnu@1.15.21':
-    optional: true
-
-  '@swc/core-linux-x64-gnu@1.15.21':
-    optional: true
-
-  '@swc/core-linux-x64-musl@1.15.21':
-    optional: true
-
-  '@swc/core-win32-arm64-msvc@1.15.21':
-    optional: true
-
-  '@swc/core-win32-ia32-msvc@1.15.21':
-    optional: true
-
-  '@swc/core-win32-x64-msvc@1.15.21':
-    optional: true
-
-  '@swc/core@1.15.21':
-    dependencies:
-      '@swc/counter': 0.1.3
-      '@swc/types': 0.1.25
-    optionalDependencies:
-      '@swc/core-darwin-arm64': 1.15.21
-      '@swc/core-darwin-x64': 1.15.21
-      '@swc/core-linux-arm-gnueabihf': 1.15.21
-      '@swc/core-linux-arm64-gnu': 1.15.21
-      '@swc/core-linux-arm64-musl': 1.15.21
-      '@swc/core-linux-ppc64-gnu': 1.15.21
-      '@swc/core-linux-s390x-gnu': 1.15.21
-      '@swc/core-linux-x64-gnu': 1.15.21
-      '@swc/core-linux-x64-musl': 1.15.21
-      '@swc/core-win32-arm64-msvc': 1.15.21
-      '@swc/core-win32-ia32-msvc': 1.15.21
-      '@swc/core-win32-x64-msvc': 1.15.21
-
-  '@swc/counter@0.1.3': {}
-
-  '@swc/types@0.1.25':
-    dependencies:
-      '@swc/counter': 0.1.3
-
   '@toon-format/toon@2.1.0': {}
 
   '@tybys/wasm-util@0.10.1':
@@ -951,37 +805,34 @@ snapshots:
     dependencies:
       csstype: 3.2.3
 
-  '@vitejs/plugin-react-swc@4.3.0(vite@8.0.10(@types/node@25.6.0)(yaml@2.8.3))':
+  '@vitejs/plugin-react@6.0.1(vite@8.0.10(@types/node@25.6.0)(yaml@2.8.3))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-rc.7
-      '@swc/core': 1.15.21
       vite: 8.0.10(@types/node@25.6.0)(yaml@2.8.3)
-    transitivePeerDependencies:
-      - '@swc/helpers'
 
-  abitype@1.2.3(typescript@5.9.3)(zod@4.3.6):
+  abitype@1.2.3(typescript@5.9.3)(zod@4.4.1):
     optionalDependencies:
       typescript: 5.9.3
-      zod: 4.3.6
+      zod: 4.4.1
 
-  abitype@1.2.4(typescript@5.9.3)(zod@4.3.6):
+  abitype@1.2.4(typescript@5.9.3)(zod@4.4.1):
     optionalDependencies:
       typescript: 5.9.3
-      zod: 4.3.6
+      zod: 4.4.1
 
-  accounts@0.8.3(@types/react@19.2.14)(react@19.2.5)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.3.6)):
+  accounts@0.8.9(@types/react@19.2.14)(react@19.2.5)(typescript@5.9.3)(viem@2.48.7(typescript@5.9.3)(zod@4.4.1)):
     dependencies:
-      hono: 4.12.15
+      hono: 4.12.16
       idb-keyval: 6.2.2
       mipd: 0.0.7(typescript@5.9.3)
-      mppx: 0.6.5(hono@4.12.15)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.3.6))
-      ox: 0.14.20(typescript@5.9.3)(zod@4.3.6)
-      webauthx: 0.1.2(typescript@5.9.3)(zod@4.3.6)
-      zod: 4.3.6
+      mppx: 0.6.5(hono@4.12.16)(typescript@5.9.3)(viem@2.48.7(typescript@5.9.3)(zod@4.4.1))
+      ox: 0.14.20(typescript@5.9.3)(zod@4.4.1)
+      webauthx: 0.1.2(typescript@5.9.3)(zod@4.4.1)
+      zod: 4.4.1
       zustand: 5.0.12(@types/react@19.2.14)(react@19.2.5)
     optionalDependencies:
       react: 19.2.5
-      viem: 2.48.4(typescript@5.9.3)(zod@4.3.6)
+      viem: 2.48.7(typescript@5.9.3)(zod@4.4.1)
     transitivePeerDependencies:
       - '@modelcontextprotocol/sdk'
       - '@types/react'
@@ -1004,7 +855,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  hono@4.12.15: {}
+  hono@4.12.16: {}
 
   idb-keyval@6.2.2: {}
 
@@ -1015,7 +866,7 @@ snapshots:
       '@toon-format/toon': 2.1.0
       tokenx: 1.3.0
       yaml: 2.8.3
-      zod: 4.3.6
+      zod: 4.4.1
 
   isows@1.0.7(ws@8.18.3):
     dependencies:
@@ -1074,20 +925,20 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
-  mppx@0.6.5(hono@4.12.15)(typescript@5.9.3)(viem@2.48.4(typescript@5.9.3)(zod@4.3.6)):
+  mppx@0.6.5(hono@4.12.16)(typescript@5.9.3)(viem@2.48.7(typescript@5.9.3)(zod@4.4.1)):
     dependencies:
       incur: 0.3.25
-      ox: 0.14.15(typescript@5.9.3)(zod@4.3.6)
-      viem: 2.48.4(typescript@5.9.3)(zod@4.3.6)
-      zod: 4.3.6
+      ox: 0.14.15(typescript@5.9.3)(zod@4.4.1)
+      viem: 2.48.7(typescript@5.9.3)(zod@4.4.1)
+      zod: 4.4.1
     optionalDependencies:
-      hono: 4.12.15
+      hono: 4.12.16
     transitivePeerDependencies:
       - typescript
 
-  nanoid@3.3.11: {}
+  nanoid@3.3.12: {}
 
-  ox@0.14.15(typescript@5.9.3)(zod@4.3.6):
+  ox@0.14.15(typescript@5.9.3)(zod@4.4.1):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
       '@noble/ciphers': 1.3.0
@@ -1095,14 +946,14 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.4(typescript@5.9.3)(zod@4.3.6)
+      abitype: 1.2.4(typescript@5.9.3)(zod@4.4.1)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 5.9.3
     transitivePeerDependencies:
       - zod
 
-  ox@0.14.20(typescript@5.9.3)(zod@4.3.6):
+  ox@0.14.20(typescript@5.9.3)(zod@4.4.1):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
       '@noble/ciphers': 1.3.0
@@ -1110,7 +961,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.4.1)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 5.9.3
@@ -1121,9 +972,9 @@ snapshots:
 
   picomatch@4.0.4: {}
 
-  postcss@8.5.12:
+  postcss@8.5.13:
     dependencies:
-      nanoid: 3.3.11
+      nanoid: 3.3.12
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
@@ -1173,15 +1024,15 @@ snapshots:
 
   undici-types@7.19.2: {}
 
-  viem@2.48.4(typescript@5.9.3)(zod@4.3.6):
+  viem@2.48.7(typescript@5.9.3)(zod@4.4.1):
     dependencies:
       '@noble/curves': 1.9.1
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.4.1)
       isows: 1.0.7(ws@8.18.3)
-      ox: 0.14.20(typescript@5.9.3)(zod@4.3.6)
+      ox: 0.14.20(typescript@5.9.3)(zod@4.4.1)
       ws: 8.18.3
     optionalDependencies:
       typescript: 5.9.3
@@ -1194,7 +1045,7 @@ snapshots:
     dependencies:
       lightningcss: 1.32.0
       picomatch: 4.0.4
-      postcss: 8.5.12
+      postcss: 8.5.13
       rolldown: 1.0.0-rc.17
       tinyglobby: 0.2.16
     optionalDependencies:
@@ -1202,9 +1053,9 @@ snapshots:
       fsevents: 2.3.3
       yaml: 2.8.3
 
-  webauthx@0.1.2(typescript@5.9.3)(zod@4.3.6):
+  webauthx@0.1.2(typescript@5.9.3)(zod@4.4.1):
     dependencies:
-      ox: 0.14.20(typescript@5.9.3)(zod@4.3.6)
+      ox: 0.14.20(typescript@5.9.3)(zod@4.4.1)
     transitivePeerDependencies:
       - typescript
       - zod
@@ -1213,7 +1064,7 @@ snapshots:
 
   yaml@2.8.3: {}
 
-  zod@4.3.6: {}
+  zod@4.4.1: {}
 
   zustand@5.0.12(@types/react@19.2.14)(react@19.2.5):
     optionalDependencies:

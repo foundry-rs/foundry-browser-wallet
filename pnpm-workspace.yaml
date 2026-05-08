@@ -1,6 +1,5 @@
 onlyBuiltDependencies:
   - "@biomejs/biome"
-  - "@swc/core"
 minimumReleaseAge: 10080
 blockExoticSubdeps: true
 trustPolicy: no-downgrade
