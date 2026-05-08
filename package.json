@@ -10,8 +10,7 @@
     "fmt:check": "biome format .",
     "lint": "biome check . --write --unsafe",
     "lint:check": "biome check .",
-    "preview": "vite preview",
-    "prepare": "husky"
+    "preview": "vite preview"
   },
   "dependencies": {
     "accounts": "^0.8.3",
@@ -25,7 +24,6 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react-swc": "^4.3.0",
-    "husky": "^9.1.7",
     "typescript": "~5.9.3",
     "vite": "^8.0.10"
   }
