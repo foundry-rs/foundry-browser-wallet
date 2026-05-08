@@ -546,10 +546,20 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           <>
             <div className="section-title">Transaction to Sign &amp; Send</div>
             <div className="action-row">
-              <button type="button" className="btn btn-primary" onClick={signAndSendCurrentTx} disabled={isSending}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={signAndSendCurrentTx}
+                disabled={isSending}
+              >
                 Sign &amp; Send
               </button>
-              <button type="button" className="btn btn-danger" onClick={() => void rejectCurrent()} disabled={isSending}>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => void rejectCurrent()}
+                disabled={isSending}
+              >
                 Reject
               </button>
             </div>
@@ -563,10 +573,20 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           <>
             <div className="section-title">Message / Data to Sign</div>
             <div className="action-row">
-              <button type="button" className="btn btn-primary" onClick={signCurrentMessage} disabled={isSending}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={signCurrentMessage}
+                disabled={isSending}
+              >
                 Sign
               </button>
-              <button type="button" className="btn btn-danger" onClick={() => void rejectCurrent()} disabled={isSending}>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => void rejectCurrent()}
+                disabled={isSending}
+              >
                 Reject
               </button>
             </div>
