@@ -528,9 +528,11 @@ account: ${account}
 chain:   ${chain ? `${chain.name} (${chainId})` : (chainId ?? "unknown")}
 rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[0] ?? "unknown"}`}
             </pre>
-            <button type="button" className="wallet-disconnect" onClick={() => void disconnect()}>
-              Disconnect
-            </button>
+            <div className="disconnect-row">
+              <button type="button" className="btn btn-secondary" onClick={() => void disconnect()}>
+                Disconnect
+              </button>
+            </div>
           </>
         )}
 
@@ -538,10 +540,10 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           <>
             <div className="section-title">Transaction to Sign &amp; Send</div>
             <div className="action-row">
-              <button type="button" className="wallet-send" onClick={signAndSendCurrentTx}>
+              <button type="button" className="btn btn-primary" onClick={signAndSendCurrentTx}>
                 Sign &amp; Send
               </button>
-              <button type="button" className="wallet-reject" onClick={() => void rejectCurrent()}>
+              <button type="button" className="btn btn-danger" onClick={() => void rejectCurrent()}>
                 Reject
               </button>
             </div>
@@ -555,10 +557,10 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           <>
             <div className="section-title">Message / Data to Sign</div>
             <div className="action-row">
-              <button type="button" className="wallet-send" onClick={signCurrentMessage}>
+              <button type="button" className="btn btn-primary" onClick={signCurrentMessage}>
                 Sign
               </button>
-              <button type="button" className="wallet-reject" onClick={() => void rejectCurrent()}>
+              <button type="button" className="btn btn-danger" onClick={() => void rejectCurrent()}>
                 Reject
               </button>
             </div>
@@ -606,14 +608,14 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
   if (entry.kind === "tx") {
     const summary =
       entry.status === "mined"
-        ? `mined  ${shortHash(entry.hash)}`
+        ? `mined  ${entry.hash ?? ""}`
         : entry.status === "sent"
-          ? `sent   ${shortHash(entry.hash)}  (waiting for receipt)`
+          ? `sent   ${entry.hash ?? ""}  (waiting for receipt)`
           : entry.status === "failed"
             ? `failed ${entry.error ?? ""}`
             : "pending";
     return (
-      <div className={`history-entry tx status-${entry.status}`}>
+      <div className={`history-entry tx status-${entry.status}${open ? " open" : ""}`}>
         <button
           type="button"
           className="history-summary"
@@ -622,6 +624,7 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
         >
           <span className="history-kind">tx</span>
           <span className="history-status">{summary}</span>
+          <Chevron />
         </button>
         {open && (
           <div className="history-details">
@@ -664,7 +667,7 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
         ? `failed ${entry.error ?? ""}`
         : "pending";
   return (
-    <div className={`history-entry sign status-${entry.status}`}>
+    <div className={`history-entry sign status-${entry.status}${open ? " open" : ""}`}>
       <button
         type="button"
         className="history-summary"
@@ -673,6 +676,7 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
       >
         <span className="history-kind">sig</span>
         <span className="history-status">{summary}</span>
+        <Chevron />
       </button>
       {open && (
         <div className="history-details">
@@ -695,6 +699,27 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
         </div>
       )}
     </div>
+  );
+}
+
+/// Chevron icon used in history dropdown summaries. Inherits color from
+/// its parent and is rotated 180° via CSS when the entry is open.
+function Chevron() {
+  return (
+    <svg
+      className="history-chevron"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
   );
 }
 

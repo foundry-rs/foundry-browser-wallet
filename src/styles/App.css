@@ -14,7 +14,7 @@
   background-color: #3b3b3b;
   padding: 16px;
   width: 100%;
-  max-width: 600px;
+  max-width: 700px;
   border-radius: 8px;
 }
 
@@ -54,21 +54,61 @@
   margin-top: 16px;
 }
 
-.wallet-disconnect {
-  align-self: center;
-  margin-top: 4px;
-  margin-bottom: 16px;
+/* Unified button system used by all session-level actions
+   (Disconnect, Sign / Sign & Send, Reject). Shared sizing and shape;
+   the variant modifier only changes the color treatment so that the
+   action's intent is immediately legible. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid transparent;
   background-color: transparent;
   color: #f8f8f8;
-  border: 1px solid #888;
-  padding: 4px 12px;
-  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
   cursor: pointer;
-  font-size: 12px;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
 }
 
-.wallet-disconnect:hover {
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #3a7afe;
+  border-color: #3a7afe;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #2f66d9;
+  border-color: #2f66d9;
+}
+
+.btn-secondary {
+  border-color: #888;
+}
+
+.btn-secondary:hover:not(:disabled) {
   background-color: #555;
+  border-color: #aaa;
+}
+
+.btn-danger {
+  border-color: #c44;
+  color: #ffb3b3;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #c44;
+  color: #f8f8f8;
 }
 
 .action-row {
@@ -79,21 +119,10 @@
   margin-bottom: 16px;
 }
 
-.wallet-send {
-  cursor: pointer;
-}
-
-.wallet-reject {
-  background-color: transparent;
-  color: #f8f8f8;
-  border: 1px solid #c44;
-  padding: 4px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.wallet-reject:hover {
-  background-color: #c44;
+.disconnect-row {
+  align-self: center;
+  margin-top: 4px;
+  margin-bottom: 16px;
 }
 
 .title,
@@ -146,6 +175,19 @@
   border: 1px solid #555;
   border-radius: 6px;
   background-color: #2f2f2f;
+  overflow: hidden;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.history-entry:hover {
+  border-color: #777;
+}
+
+.history-entry.open {
+  border-color: #888;
+  box-shadow: 0 0 0 1px #555 inset;
 }
 
 .history-entry.status-mined,
@@ -178,10 +220,21 @@
   cursor: pointer;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
+  transition: background-color 120ms ease;
 }
 
 .history-summary:hover {
   background-color: #3a3a3a;
+}
+
+.history-summary:focus-visible {
+  outline: 2px solid #3a7afe;
+  outline-offset: -2px;
+}
+
+.history-entry.open .history-summary {
+  background-color: #353535;
+  border-bottom: 1px solid #555;
 }
 
 .history-kind {
@@ -197,6 +250,27 @@
   word-break: break-all;
 }
 
+.history-chevron {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: #aaa;
+  transition:
+    transform 200ms ease,
+    color 120ms ease;
+  transform-origin: center;
+}
+
+.history-summary:hover .history-chevron {
+  color: #f8f8f8;
+}
+
+.history-entry.open .history-chevron {
+  transform: rotate(180deg);
+  color: #f8f8f8;
+}
+
 .history-details {
-  padding: 4px 12px 12px;
+  padding: 8px 12px 12px;
+  background-color: #2a2a2a;
 }
