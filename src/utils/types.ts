@@ -1,4 +1,4 @@
-import type { TransactionRequest } from "viem";
+import type { Hex, TransactionReceipt, TransactionRequest } from "viem";
 
 declare global {
   interface Window {
@@ -12,9 +12,11 @@ declare global {
   }
 }
 
+export type SignType = "PersonalSign" | "SignTypedDataV4";
+
 export type PendingSigning = {
   id: string;
-  signType: "PersonalSign" | "SignTypedDataV4";
+  signType: SignType;
   request: {
     message: string;
     address: string;
@@ -59,3 +61,47 @@ export type ApiOk<T> = { status: "ok"; data: T };
 export type ApiErr = { status: string; message?: string };
 
 export type PendingAny = Record<string, unknown> & { id: string; request: TransactionRequest };
+
+/// Mirrors the `SessionInfo` type returned by `GET /api/session` from the
+/// Rust BrowserWalletServer.
+export type SessionInfo = {
+  alive: boolean;
+  connected: boolean;
+};
+
+/// Status of a transaction in the in-session history.
+/// - `pending`:  user is being prompted to sign
+/// - `sent`:     the wallet returned a hash, waiting for the receipt
+/// - `mined`:    the receipt has been retrieved
+/// - `failed`:   the wallet rejected, the send failed, or the receipt fetch failed
+export type TxStatus = "pending" | "sent" | "mined" | "failed";
+
+/// Status of a signing request in the in-session history.
+/// - `pending`: user is being prompted to sign
+/// - `signed`:  signature returned successfully
+/// - `failed`:  the wallet rejected or signing failed
+export type SignStatus = "pending" | "signed" | "failed";
+
+export type TxHistoryEntry = {
+  kind: "tx";
+  id: string;
+  ts: number;
+  request: Record<string, unknown>;
+  status: TxStatus;
+  hash?: Hex;
+  receipt?: TransactionReceipt;
+  error?: string;
+};
+
+export type SignHistoryEntry = {
+  kind: "sign";
+  id: string;
+  ts: number;
+  signType: SignType;
+  request: { message: string; address: string };
+  status: SignStatus;
+  signature?: Hex;
+  error?: string;
+};
+
+export type HistoryEntry = TxHistoryEntry | SignHistoryEntry;
