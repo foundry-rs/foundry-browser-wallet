@@ -1,4 +1,4 @@
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -12,7 +12,7 @@ export default defineConfig({
     rollupOptions: {
       input: "index.html",
       output: {
-        inlineDynamicImports: true,
+        codeSplitting: false,
         manualChunks: undefined,
         entryFileNames: "main.js",
         chunkFileNames: "main.js",
