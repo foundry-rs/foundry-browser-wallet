@@ -359,8 +359,8 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  hono@4.12.17:
-    resolution: {integrity: sha512-FbJJNb/XgX7YW0hX/V8w5oYLztKEsRLykCMZWt1WdLtsfjzMvmoqWBA4H4t5norinq8/rh20oiZYr+WSl4UzAQ==}
+  hono@4.12.18:
+    resolution: {integrity: sha512-RWzP96k/yv0PQfyXnWjs6zot20TqfpfsNXhOnev8d1InAxubW93L11/oNUc3tQqn2G0bSdAOBpX+2uDFHV7kdQ==}
     engines: {node: '>=16.9.0'}
 
   idb-keyval@6.2.2:
@@ -822,10 +822,10 @@ snapshots:
 
   accounts@0.8.10(@types/react@19.2.14)(react@19.2.5)(typescript@5.9.3)(viem@2.48.8(typescript@5.9.3)(zod@4.4.3)):
     dependencies:
-      hono: 4.12.17
+      hono: 4.12.18
       idb-keyval: 6.2.2
       mipd: 0.0.7(typescript@5.9.3)
-      mppx: 0.6.5(hono@4.12.17)(typescript@5.9.3)(viem@2.48.8(typescript@5.9.3)(zod@4.4.3))
+      mppx: 0.6.5(hono@4.12.18)(typescript@5.9.3)(viem@2.48.8(typescript@5.9.3)(zod@4.4.3))
       ox: 0.14.20(typescript@5.9.3)(zod@4.4.3)
       webauthx: 0.1.2(typescript@5.9.3)(zod@4.4.3)
       zod: 4.4.3
@@ -855,7 +855,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  hono@4.12.17: {}
+  hono@4.12.18: {}
 
   idb-keyval@6.2.2: {}
 
@@ -925,14 +925,14 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
-  mppx@0.6.5(hono@4.12.17)(typescript@5.9.3)(viem@2.48.8(typescript@5.9.3)(zod@4.4.3)):
+  mppx@0.6.5(hono@4.12.18)(typescript@5.9.3)(viem@2.48.8(typescript@5.9.3)(zod@4.4.3)):
     dependencies:
       incur: 0.3.25
       ox: 0.14.15(typescript@5.9.3)(zod@4.4.3)
       viem: 2.48.8(typescript@5.9.3)(zod@4.4.3)
       zod: 4.4.3
     optionalDependencies:
-      hono: 4.12.17
+      hono: 4.12.18
     transitivePeerDependencies:
       - typescript
 
