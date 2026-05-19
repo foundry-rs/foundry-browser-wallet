@@ -618,7 +618,12 @@ export function App() {
         {providers.length === 0 && sessionAlive && <p>No wallets found.</p>}
 
         {selected && !account && sessionAlive && (
-          <button type="button" className="btn btn-primary wallet-connect" onClick={connect} disabled={confirmed}>
+          <button
+            type="button"
+            className="btn btn-primary wallet-connect"
+            onClick={connect}
+            disabled={confirmed}
+          >
             Connect Wallet
           </button>
         )}
