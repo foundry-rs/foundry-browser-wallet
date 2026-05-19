@@ -62,24 +62,24 @@ export type ApiErr = { status: string; message?: string };
 
 export type PendingAny = Record<string, unknown> & { id: string; request: TransactionRequest };
 
-/// Mirrors the `SessionInfo` type returned by `GET /api/session` from the
-/// Rust BrowserWalletServer.
+// Mirrors the `SessionInfo` type returned by `GET /api/session` from the
+// Rust BrowserWalletServer.
 export type SessionInfo = {
   alive: boolean;
   connected: boolean;
 };
 
-/// Status of a transaction in the in-session history.
-/// - `pending`:  user is being prompted to sign
-/// - `sent`:     the wallet returned a hash, waiting for the receipt
-/// - `mined`:    the receipt has been retrieved
-/// - `failed`:   the wallet rejected, the send failed, or the receipt fetch failed
+// Status of a transaction in the in-session history.
+// - `pending`:  user is being prompted to sign
+// - `sent`:     the wallet returned a hash, waiting for the receipt
+// - `mined`:    the receipt has been retrieved
+// - `failed`:   the wallet rejected, the send failed, or the receipt fetch failed
 export type TxStatus = "pending" | "sent" | "mined" | "failed";
 
-/// Status of a signing request in the in-session history.
-/// - `pending`: user is being prompted to sign
-/// - `signed`:  signature returned successfully
-/// - `failed`:  the wallet rejected or signing failed
+// Status of a signing request in the in-session history.
+// - `pending`: user is being prompted to sign
+// - `signed`:  signature returned successfully
+// - `failed`:  the wallet rejected or signing failed
 export type SignStatus = "pending" | "signed" | "failed";
 
 export type TxHistoryEntry = {

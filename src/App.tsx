@@ -67,8 +67,8 @@ export function App() {
 
   // --- helpers ---------------------------------------------------------------
 
-  /// Insert or update a history entry by id. Newest entries are shown first
-  /// in the UI.
+  // Insert or update a history entry by id. Newest entries are shown first
+  // in the UI.
   const upsertHistory = useCallback((entry: HistoryEntry) => {
     setHistory((prev) => {
       const idx = prev.findIndex((e) => e.id === entry.id);
@@ -129,9 +129,9 @@ export function App() {
     setConfirmed(true);
   };
 
-  /// Disconnect the wallet. The Rust server will fail any in-flight request
-  /// with a "Wallet disconnected" error so the script gets fast feedback
-  /// instead of waiting for the per-request timeout.
+  // Disconnect the wallet. The Rust server will fail any in-flight request
+  // with a "Wallet disconnected" error so the script gets fast feedback
+  // instead of waiting for the per-request timeout.
   const disconnect = useCallback(async () => {
     try {
       await api("/api/connection", "POST", null);
@@ -147,9 +147,9 @@ export function App() {
 
   // --- request handlers ------------------------------------------------------
 
-  /// Sign and send the current pending transaction. Clears `pendingTx`
-  /// immediately after the wallet returns a hash so the poller can pick up
-  /// the next request without waiting for the receipt.
+  // Sign and send the current pending transaction. Clears `pendingTx`
+  // immediately after the wallet returns a hash so the poller can pick up
+  // the next request without waiting for the receipt.
   const signAndSendCurrentTx = async () => {
     if (!selected || !pendingTx?.request || !sessionAlive || isSending) return;
     setIsSending(true);
@@ -331,9 +331,9 @@ export function App() {
     }
   };
 
-  /// Reject the currently pending transaction or signing request without
-  /// touching the wallet. Lets the user skip a request while keeping the
-  /// session alive.
+  // Reject the currently pending transaction or signing request without
+  // touching the wallet. Lets the user skip a request while keeping the
+  // session alive.
   const rejectCurrent = useCallback(async () => {
     if (pendingTx) {
       const id = pendingTx.id;
@@ -751,8 +751,8 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
   );
 }
 
-/// Chevron icon used in history dropdown summaries. Inherits color from
-/// its parent and is rotated 180° via CSS when the entry is open.
+// Chevron icon used in history dropdown summaries. Inherits color from
+// its parent and is rotated 180° via CSS when the entry is open.
 function Chevron() {
   return (
     <svg
