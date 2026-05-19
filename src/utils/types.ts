@@ -82,6 +82,12 @@ export type TxStatus = "pending" | "sent" | "mined" | "failed";
 // - `failed`:  the wallet rejected or signing failed
 export type SignStatus = "pending" | "signed" | "failed";
 
+// Status of a keychain authorization in the in-session history.
+// - `pending`:   user is being prompted to authorize
+// - `authorized`: wallet returned the signed key authorization
+// - `failed`:    the wallet rejected or authorization failed
+export type KeychainAuthStatus = "pending" | "authorized" | "failed";
+
 export type TxHistoryEntry = {
   kind: "tx";
   id: string;
@@ -104,4 +110,50 @@ export type SignHistoryEntry = {
   error?: string;
 };
 
-export type HistoryEntry = TxHistoryEntry | SignHistoryEntry;
+export type KeychainAuthHistoryEntry = {
+  kind: "keychain-auth";
+  id: string;
+  ts: number;
+  keyAuthorization: KeyAuthorization;
+  rootAccount: `0x${string}`;
+  status: KeychainAuthStatus;
+  signedHex?: Hex;
+  error?: string;
+};
+
+export type HistoryEntry = TxHistoryEntry | SignHistoryEntry | KeychainAuthHistoryEntry;
+
+// --- Tempo KeyAuthorization types -------------------------------------------
+
+export type SignatureType = "secp256k1" | "p256" | "webAuthn";
+
+export type KeyAuthorizationLimit = {
+  token: `0x${string}`;
+  limit: `0x${string}`;
+  period?: `0x${string}`;
+};
+
+export type KeyAuthorizationCallScope = {
+  target: `0x${string}`;
+  selectorRules: Array<{
+    selector: `0x${string}`;
+    recipients: `0x${string}`[];
+  }>;
+};
+
+export type KeyAuthorization = {
+  chainId: `0x${string}`;
+  keyType: SignatureType;
+  keyId: `0x${string}`;
+  expiry?: `0x${string}` | null;
+  limits?: KeyAuthorizationLimit[] | null;
+  allowedCalls?: KeyAuthorizationCallScope[] | null;
+};
+
+export type PendingKeychainAuth = {
+  id: string;
+  rootAccount: `0x${string}`;
+  keyAuthorization: KeyAuthorization;
+  digest: `0x${string}`;
+  preferredSignatureType?: SignatureType;
+};
