@@ -372,6 +372,15 @@ export function App() {
       const decoded = KeyAuthorization.fromRpc(
         resp.keyAuthorization as Parameters<typeof KeyAuthorization.fromRpc>[0],
       );
+
+      // Verify the wallet signed the same payload the server queued.
+      const actualDigest = KeyAuthorization.hash(decoded);
+      if (actualDigest.toLowerCase() !== pendingKeychainAuth.digest.toLowerCase()) {
+        throw new Error(
+          `KeyAuthorization digest mismatch: expected ${pendingKeychainAuth.digest}, got ${actualDigest}`,
+        );
+      }
+
       const signedHex = KeyAuthorization.serialize(decoded) as Hex;
 
       await api("/api/keychain-auth/response", "POST", { id, signedHex, error: null });
@@ -963,11 +972,14 @@ function errMessage(e: unknown): string {
 function keyAuthorizationToWalletParams(auth: KeyAuthorizationDto): Record<string, unknown> {
   const expiry = auth.expiry == null ? 0 : Number(BigInt(auth.expiry as `0x${string}`));
 
-  const limits = (auth.limits ?? []).map((l) => ({
-    token: l.token,
-    limit: BigInt(l.limit),
-    ...(l.period ? { period: Number(BigInt(l.period)) } : {}),
-  }));
+  const limits =
+    auth.limits != null
+      ? auth.limits.map((l) => ({
+          token: l.token,
+          limit: BigInt(l.limit),
+          ...(l.period ? { period: Number(BigInt(l.period)) } : {}),
+        }))
+      : undefined;
 
   // Flatten Tempo's nested `allowedCalls` into the SDK's flat `scopes`:
   //   - CallScope without selectorRules -> `{ address: target }` (any selector)
@@ -988,7 +1000,7 @@ function keyAuthorizationToWalletParams(auth: KeyAuthorizationDto): Record<strin
     chainId: BigInt(auth.chainId),
     expiry,
     keyType: auth.keyType,
-    limits,
+    ...(limits !== undefined ? { limits } : {}),
     ...(auth.allowedCalls ? { scopes } : {}),
   };
 }
