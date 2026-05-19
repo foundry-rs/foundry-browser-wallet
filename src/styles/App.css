@@ -10,10 +10,11 @@
 .container {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   background-color: #3b3b3b;
   padding: 16px;
-  max-width: 600px;
+  width: 100%;
+  max-width: 700px;
   border-radius: 8px;
 }
 
@@ -29,6 +30,17 @@
   font-size: 13px;
 }
 
+.session-ended {
+  width: 100%;
+  background-color: #555;
+  color: #f8f8f8;
+  text-align: center;
+  padding: 8px;
+  border-radius: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
 .banner {
   width: 100%;
   height: auto;
@@ -37,18 +49,85 @@
 
 .wallet-selector,
 .wallet-connect,
-.wallet-send,
 .wallet-confirm {
   align-self: center;
   margin-top: 16px;
 }
 
-.wallet-send {
+/* Unified button system used by all session-level actions
+   (Disconnect, Sign / Sign & Send, Reject). Shared sizing and shape;
+   the variant modifier only changes the color treatment so that the
+   action's intent is immediately legible. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: #f8f8f8;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #3a7afe;
+  border-color: #3a7afe;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #2f66d9;
+  border-color: #2f66d9;
+}
+
+.btn-secondary {
+  border-color: #888;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #555;
+  border-color: #aaa;
+}
+
+.btn-danger {
+  border-color: #c44;
+  color: #ffb3b3;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #c44;
+  color: #f8f8f8;
+}
+
+.action-row {
+  display: flex;
+  gap: 8px;
+  align-self: center;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.disconnect-row {
+  align-self: center;
+  margin-top: 4px;
   margin-bottom: 16px;
 }
 
 .title,
-.section-title {
+.section-title,
+.section-subtitle {
   color: #f8f8f8;
 }
 
@@ -58,14 +137,140 @@
 }
 
 .section-title {
-  font-size: 24px;
-  margin-bottom: 16px;
+  font-size: 20px;
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+.section-subtitle {
+  font-size: 13px;
+  margin-top: 8px;
+  margin-bottom: 4px;
+  font-weight: bold;
+  color: #cfcfcf;
 }
 
 .box {
   font-size: 13px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   border: 1px solid #e1e4e8;
   border-radius: 8px;
   padding: 8px 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.box.error {
+  border-color: #c44;
+  color: #ffb3b3;
+}
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history-entry {
+  border: 1px solid #555;
+  border-radius: 6px;
+  background-color: #2f2f2f;
+  overflow: hidden;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.history-entry:hover {
+  border-color: #777;
+}
+
+.history-entry.open {
+  border-color: #888;
+  box-shadow: 0 0 0 1px #555 inset;
+}
+
+.history-entry.status-mined,
+.history-entry.status-signed {
+  border-left: 3px solid #5cd178;
+}
+
+.history-entry.status-sent {
+  border-left: 3px solid #f0c040;
+}
+
+.history-entry.status-failed {
+  border-left: 3px solid #c44;
+}
+
+.history-entry.status-pending {
+  border-left: 3px solid #888;
+}
+
+.history-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #f8f8f8;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  transition: background-color 120ms ease;
+}
+
+.history-summary:hover {
+  background-color: #3a3a3a;
+}
+
+.history-summary:focus-visible {
+  outline: 2px solid #3a7afe;
+  outline-offset: -2px;
+}
+
+.history-entry.open .history-summary {
+  background-color: #353535;
+  border-bottom: 1px solid #555;
+}
+
+.history-kind {
+  font-weight: bold;
+  color: #cfcfcf;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 32px;
+}
+
+.history-status {
+  flex: 1;
+  word-break: break-all;
+}
+
+.history-chevron {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: #aaa;
+  transition:
+    transform 200ms ease,
+    color 120ms ease;
+  transform-origin: center;
+}
+
+.history-summary:hover .history-chevron {
+  color: #f8f8f8;
+}
+
+.history-entry.open .history-chevron {
+  transform: rotate(180deg);
+  color: #f8f8f8;
+}
+
+.history-details {
+  padding: 8px 12px 12px;
+  background-color: #2a2a2a;
 }
