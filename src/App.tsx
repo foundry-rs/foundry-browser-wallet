@@ -115,8 +115,8 @@ export function App() {
     }
   };
 
-  /// Confirm the current connection. After this the polling loop runs and
-  /// the user no longer needs to reload between requests.
+  // Confirm the current connection. After this the polling loop runs and
+  // the user no longer needs to reload between requests.
   const confirm = async () => {
     if (!account || chainId == null) return;
 
@@ -223,20 +223,37 @@ export function App() {
         ...(value ? { value: toBig(value as `0x${string}`) } : {}),
         chain,
       });
-
-      await api("/api/transaction/response", "POST", { id, hash, error: null });
     } catch (e: unknown) {
       const msg = errMessage(e);
       console.error("send failed:", msg);
 
-      try {
-        await api("/api/transaction/response", "POST", { id, hash: null, error: msg });
-      } catch {}
-
-      updateHistory(id, "tx", { status: "failed", error: msg });
+      if (!hash) {
+        // Wallet rejected or failed before broadcasting — safe to report error.
+        try {
+          await api("/api/transaction/response", "POST", { id, hash: null, error: msg });
+        } catch {}
+        updateHistory(id, "tx", { status: "failed", error: msg });
+      } else {
+        // Tx was broadcast (hash known) but the response POST failed. Report
+        // success so the script is not left waiting; the hash is preserved in
+        // history.
+        console.warn("response post failed after broadcast, reporting hash anyway:", hash);
+        try {
+          await api("/api/transaction/response", "POST", { id, hash, error: null });
+        } catch {}
+        updateHistory(id, "tx", { status: "sent", hash });
+      }
       setPendingTx(null);
       setIsSending(false);
       return;
+    }
+
+    try {
+      await api("/api/transaction/response", "POST", { id, hash, error: null });
+    } catch (e: unknown) {
+      // Tx is already live on-chain. Log and continue — history already shows
+      // the hash.
+      console.warn("response post failed after successful send:", errMessage(e));
     }
 
     // Mark as sent and clear the pending slot so the poller can re-arm
@@ -393,11 +410,17 @@ export function App() {
     if (!selected) return;
 
     const onAccountsChanged = (accounts: readonly string[]) => {
-      if (confirmed) return;
+      if (confirmed) {
+        void disconnect();
+        return;
+      }
       setAccount((accounts[0] as Address) ?? undefined);
     };
     const onChainChanged = (raw: unknown) => {
-      if (confirmed) return;
+      if (confirmed) {
+        void disconnect();
+        return;
+      }
       applyChainId(raw, setChainId, setChain);
     };
 
@@ -407,7 +430,7 @@ export function App() {
       selected.provider.removeListener?.("accountsChanged", onAccountsChanged);
       selected.provider.removeListener?.("chainChanged", onChainChanged);
     };
-  }, [selected, confirmed]);
+  }, [selected, confirmed, disconnect]);
 
   // Combined poller: while the session is alive, we are confirmed, and there
   // is no in-flight request, look for the next transaction or signing
@@ -550,7 +573,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
                 type="button"
                 className="btn btn-primary"
                 onClick={signAndSendCurrentTx}
-                disabled={isSending}
+                disabled={isSending || !sessionAlive}
               >
                 Sign &amp; Send
               </button>
@@ -558,7 +581,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
                 type="button"
                 className="btn btn-danger"
                 onClick={() => void rejectCurrent()}
-                disabled={isSending}
+                disabled={isSending || !sessionAlive}
               >
                 Reject
               </button>
@@ -577,7 +600,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
                 type="button"
                 className="btn btn-primary"
                 onClick={signCurrentMessage}
-                disabled={isSending}
+                disabled={isSending || !sessionAlive}
               >
                 Sign
               </button>
@@ -585,7 +608,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
                 type="button"
                 className="btn btn-danger"
                 onClick={() => void rejectCurrent()}
-                disabled={isSending}
+                disabled={isSending || !sessionAlive}
               >
                 Reject
               </button>
@@ -638,7 +661,7 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
         : entry.status === "sent"
           ? `sent   ${entry.hash ?? ""}  (waiting for receipt)`
           : entry.status === "failed"
-            ? `failed ${entry.error ?? ""}`
+            ? `failed ${(entry.error ?? "").split("\n")[0]}`
             : "pending";
     return (
       <div className={`history-entry tx status-${entry.status}${open ? " open" : ""}`}>
@@ -690,7 +713,7 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
     entry.status === "signed"
       ? `signed ${shortHash(entry.signature)}`
       : entry.status === "failed"
-        ? `failed ${entry.error ?? ""}`
+        ? `failed ${(entry.error ?? "").split("\n")[0]}`
         : "pending";
   return (
     <div className={`history-entry sign status-${entry.status}${open ? " open" : ""}`}>
