@@ -594,7 +594,7 @@ export function App() {
           </div>
         )}
 
-        {providers.length > 1 && (
+        {providers.length > 1 && sessionAlive && (
           <div className="wallet-selector">
             <label>
               <select
@@ -615,10 +615,10 @@ export function App() {
           </div>
         )}
 
-        {providers.length === 0 && <p>No wallets found.</p>}
+        {providers.length === 0 && sessionAlive && <p>No wallets found.</p>}
 
-        {selected && !account && (
-          <button type="button" className="wallet-connect" onClick={connect} disabled={confirmed}>
+        {selected && !account && sessionAlive && (
+          <button type="button" className="btn btn-primary wallet-connect" onClick={connect} disabled={confirmed}>
             Connect Wallet
           </button>
         )}
@@ -626,7 +626,7 @@ export function App() {
         {selected && account && !confirmed && (
           <button
             type="button"
-            className="wallet-confirm"
+            className="btn btn-primary wallet-confirm"
             onClick={confirm}
             disabled={!account || chainId == null}
           >
