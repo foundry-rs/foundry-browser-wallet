@@ -52,6 +52,7 @@
 .wallet-confirm {
   align-self: center;
   margin-top: 16px;
+  margin-bottom: 4px;
 }
 
 /* Unified button system used by all session-level actions
@@ -191,7 +192,8 @@
 }
 
 .history-entry.status-mined,
-.history-entry.status-signed {
+.history-entry.status-signed,
+.history-entry.status-authorized {
   border-left: 3px solid #5cd178;
 }
 
