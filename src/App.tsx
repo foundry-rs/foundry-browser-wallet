@@ -387,9 +387,15 @@ export function App() {
 
       const signedHex = KeyAuthorization.serialize(decoded) as Hex;
 
-      await api("/api/keychain-auth/response", "POST", { id, signedHex, error: null });
+      const result = await api<ApiOk<null> | ApiErr>("/api/keychain-auth/response", "POST", {
+        id,
+        signedHex,
+        error: null,
+      });
 
-      updateHistory(id, "keychain-auth", { status: "authorized", signedHex });
+      if (isOk(result)) {
+        updateHistory(id, "keychain-auth", { status: "authorized", signedHex });
+      }
     } catch (e: unknown) {
       const msg = errMessage(e);
       console.error("keychain auth failed:", msg);
@@ -992,14 +998,11 @@ function keyAuthorizationToWalletParams(auth: KeyAuthorizationDto): Record<strin
       ? 0
       : hexToSafeNumber(auth.expiry as `0x${string}`);
 
-  const limits =
-    auth.limits != null
-      ? auth.limits.map((l) => ({
-          token: l.token,
-          limit: BigInt(l.limit),
-          ...(l.period ? { period: Number(BigInt(l.period)) } : {}),
-        }))
-      : undefined;
+  const limits = (auth.limits ?? []).map((l) => ({
+    token: l.token,
+    limit: BigInt(l.limit),
+    ...(l.period ? { period: hexToSafeNumber(l.period as `0x${string}`) } : {}),
+  }));
 
   // Flatten Tempo's nested `allowedCalls` into the SDK's flat `scopes`:
   //   - CallScope without selectorRules -> `{ address: target }` (any selector)
@@ -1020,7 +1023,7 @@ function keyAuthorizationToWalletParams(auth: KeyAuthorizationDto): Record<strin
     chainId: parseTempoChainId(auth.chainId),
     expiry,
     keyType: auth.keyType,
-    ...(limits !== undefined ? { limits } : {}),
+    limits,
     ...(auth.allowedCalls ? { scopes } : {}),
   };
 }
