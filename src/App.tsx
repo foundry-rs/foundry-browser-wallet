@@ -1,7 +1,7 @@
 import "./styles/App.css";
 
 import { Provider } from "accounts";
-import { KeyAuthorization, SignatureEnvelope } from "ox/tempo";
+import { KeyAuthorization } from "ox/tempo";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Address, type Chain, createWalletClient, custom, type Hex } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
@@ -362,16 +362,22 @@ export function App() {
 
       const params = keyAuthorizationToWalletParams(auth);
 
+      type WalletKeyAuthorizationRpc = Parameters<typeof KeyAuthorization.fromRpc>[0];
       const resp = (await selected.provider.request({
         method: "wallet_authorizeAccessKey",
         params: [params],
-      })) as { keyAuthorization: unknown; rootAddress: `0x${string}` };
+      })) as { keyAuthorization: WalletKeyAuthorizationRpc; rootAddress: `0x${string}` };
 
       // Convert the wallet's RPC-form keyAuthorization back to the canonical
       // RLP encoding expected by Foundry's BrowserKeychainAuthRequest handler.
-      const decoded = KeyAuthorization.fromRpc(
-        resp.keyAuthorization as Parameters<typeof KeyAuthorization.fromRpc>[0],
-      );
+      const decoded = KeyAuthorization.fromRpc(resp.keyAuthorization);
+
+      // Verify the returned root address matches what the server requested.
+      if (resp.rootAddress.toLowerCase() !== rootAccount.toLowerCase()) {
+        throw new Error(
+          `Wallet authorized with root ${resp.rootAddress}, expected ${rootAccount}`,
+        );
+      }
 
       // Verify the wallet signed the same payload the server queued.
       const actualDigest = KeyAuthorization.hash(decoded);
@@ -404,6 +410,7 @@ export function App() {
   // Reject the currently pending transaction, signing, or keychain-auth
   // request without touching the wallet. Keeps the session alive.
   const rejectCurrent = useCallback(async () => {
+    if (isSending) return;
     if (pendingTx) {
       const id = pendingTx.id;
       const reason = "Rejected by user";
@@ -456,7 +463,7 @@ export function App() {
       });
       setPendingKeychainAuth(null);
     }
-  }, [pendingTx, pendingSigning, pendingKeychainAuth, upsertHistory]);
+  }, [isSending, pendingTx, pendingSigning, pendingKeychainAuth, upsertHistory]);
 
   // --- effects ---------------------------------------------------------------
 
@@ -763,7 +770,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
             <>
               <div className="section-title">Waiting</div>
               <div className="box">
-                <pre>No pending transaction or signing request</pre>
+                <pre>No pending transaction, signing, or key authorization request</pre>
               </div>
             </>
           )}
@@ -952,6 +959,18 @@ function Chevron() {
 
 // --- utilities --------------------------------------------------------------
 
+function parseTempoChainId(chainId: `0x${string}`): bigint {
+  return chainId === "0x" ? 0n : BigInt(chainId);
+}
+
+function hexToSafeNumber(hex: `0x${string}`): number {
+  const n = BigInt(hex);
+  if (n > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error(`Value ${n} exceeds Number.MAX_SAFE_INTEGER`);
+  }
+  return Number(n);
+}
+
 function shortHash(h?: string): string {
   if (!h) return "";
   return h.length > 18 ? `${h.slice(0, 10)}…${h.slice(-8)}` : h;
@@ -970,7 +989,10 @@ function errMessage(e: unknown): string {
 // `BrowserKeychainAuthRequest`) into the parameter shape required by the
 // `wallet_authorizeAccessKey` RPC method (see `accounts/dist/core/zod/rpc`).
 function keyAuthorizationToWalletParams(auth: KeyAuthorizationDto): Record<string, unknown> {
-  const expiry = auth.expiry == null ? 0 : Number(BigInt(auth.expiry as `0x${string}`));
+  const expiry =
+    auth.expiry == null || auth.expiry === "0x" || auth.expiry === "0x0"
+      ? 0
+      : hexToSafeNumber(auth.expiry as `0x${string}`);
 
   const limits =
     auth.limits != null
@@ -997,7 +1019,7 @@ function keyAuthorizationToWalletParams(auth: KeyAuthorizationDto): Record<strin
 
   return {
     address: auth.keyId,
-    chainId: BigInt(auth.chainId),
+    chainId: parseTempoChainId(auth.chainId),
     expiry,
     keyType: auth.keyType,
     ...(limits !== undefined ? { limits } : {}),
@@ -1012,13 +1034,13 @@ function summarizeKeyAuthorization(req: PendingKeychainAuth): string {
   const lines: string[] = [];
   lines.push(`Authorize key: ${auth.keyId}`);
   lines.push(`On account:    ${rootAccount}`);
-  lines.push(`Chain ID:      ${BigInt(auth.chainId).toString()}`);
+  lines.push(`Chain ID:      ${parseTempoChainId(auth.chainId).toString()}`);
   lines.push(`Key type:      ${auth.keyType}`);
 
-  if (auth.expiry == null) {
+  if (auth.expiry == null || auth.expiry === "0x" || auth.expiry === "0x0") {
     lines.push("Expiry:        never");
   } else {
-    const ts = Number(BigInt(auth.expiry));
+    const ts = hexToSafeNumber(auth.expiry as `0x${string}`);
     lines.push(`Expiry:        ${new Date(ts * 1000).toISOString()} (${ts})`);
   }
 
@@ -1055,9 +1077,6 @@ function summarizeKeyAuthorization(req: PendingKeychainAuth): string {
 
   lines.push("");
   lines.push(`Digest: ${digest}`);
-
-  // Referenced implicitly by `KeyAuthorization.fromRpc` — suppress unused-import warning.
-  void SignatureEnvelope;
 
   return lines.join("\n");
 }

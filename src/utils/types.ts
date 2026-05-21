@@ -135,9 +135,9 @@ export type KeyAuthorizationLimit = {
 
 export type KeyAuthorizationCallScope = {
   target: `0x${string}`;
-  selectorRules: Array<{
+  selectorRules?: Array<{
     selector: `0x${string}`;
-    recipients: `0x${string}`[];
+    recipients?: `0x${string}`[];
   }>;
 };
 
