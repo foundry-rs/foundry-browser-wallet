@@ -374,9 +374,7 @@ export function App() {
 
       // Verify the returned root address matches what the server requested.
       if (resp.rootAddress.toLowerCase() !== rootAccount.toLowerCase()) {
-        throw new Error(
-          `Wallet authorized with root ${resp.rootAddress}, expected ${rootAccount}`,
-        );
+        throw new Error(`Wallet authorized with root ${resp.rootAddress}, expected ${rootAccount}`);
       }
 
       // Verify the wallet signed the same payload the server queued.
