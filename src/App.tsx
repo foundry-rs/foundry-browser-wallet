@@ -1,6 +1,7 @@
 import "./styles/App.css";
 
 import { Provider } from "accounts";
+import { KeyAuthorization } from "ox/tempo";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Address, type Chain, createWalletClient, custom, type Hex } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
@@ -21,7 +22,10 @@ import type {
   EIP6963AnnounceProviderEvent,
   EIP6963ProviderInfo,
   HistoryEntry,
+  KeyAuthorization as KeyAuthorizationDto,
+  KeychainAuthHistoryEntry,
   PendingAny,
+  PendingKeychainAuth,
   PendingSigning,
   SessionInfo,
   SignHistoryEntry,
@@ -51,24 +55,20 @@ export function App() {
 
   const [pendingTx, setPendingTx] = useState<PendingAny | null>(null);
   const [pendingSigning, setPendingSigning] = useState<PendingSigning | null>(null);
+  const [pendingKeychainAuth, setPendingKeychainAuth] = useState<PendingKeychainAuth | null>(null);
   const [isSending, setIsSending] = useState<boolean>(false);
 
-  // In-session history of every signed transaction and message. Flushed on
-  // page reload (issue foundry-rs/foundry-browser-wallet#17).
+  // In-session history of every signed transaction, message, and key
+  // authorization. Flushed on page reload.
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
-  // Tracks whether the BrowserSigner server is still alive. Becomes false
-  // either when `/api/session` reports `alive: false` or when polling fails
-  // (server gone). When false, polling is paused and the UI shows an
-  // "end of session" badge while keeping the history visible.
+  // Tracks whether the BrowserSigner server is still alive.
   const [sessionAlive, setSessionAlive] = useState<boolean>(true);
 
   const prevSelectedUuidRef = useRef<string | null>(null);
 
   // --- helpers ---------------------------------------------------------------
 
-  // Insert or update a history entry by id. Newest entries are shown first
-  // in the UI.
   const upsertHistory = useCallback((entry: HistoryEntry) => {
     setHistory((prev) => {
       const idx = prev.findIndex((e) => e.id === entry.id);
@@ -139,6 +139,7 @@ export function App() {
 
     setPendingTx(null);
     setPendingSigning(null);
+    setPendingKeychainAuth(null);
     setAccount(undefined);
     setChainId(undefined);
     setChain(undefined);
@@ -276,7 +277,7 @@ export function App() {
     })();
   };
 
-  /// Sign the current pending message / typed data.
+  // Sign the current pending message / typed data.
   const signCurrentMessage = async () => {
     if (!selected || !pendingSigning || !sessionAlive || isSending) return;
     setIsSending(true);
@@ -331,10 +332,89 @@ export function App() {
     }
   };
 
-  // Reject the currently pending transaction or signing request without
-  // touching the wallet. Lets the user skip a request while keeping the
-  // session alive.
+  // Sign the current pending Tempo `KeyAuthorization`. Drives
+  // `wallet_authorizeAccessKey` on the connected wallet, then RLP-encodes
+  // the returned `keyAuthorization` so the Foundry server can decode it as
+  // a `SignedKeyAuthorization`.
+  const signCurrentKeychainAuth = async () => {
+    if (!selected || !pendingKeychainAuth || !sessionAlive || isSending) return;
+    setIsSending(true);
+
+    const { id, keyAuthorization: auth, rootAccount } = pendingKeychainAuth;
+
+    const placeholder: KeychainAuthHistoryEntry = {
+      kind: "keychain-auth",
+      id,
+      ts: Date.now(),
+      keyAuthorization: auth,
+      rootAccount,
+      status: "pending",
+    };
+    upsertHistory(placeholder);
+
+    try {
+      // Connected wallet must be the root account.
+      if (account && account.toLowerCase() !== rootAccount.toLowerCase()) {
+        throw new Error(
+          `Connected wallet ${account} does not match requested root account ${rootAccount}`,
+        );
+      }
+
+      const params = keyAuthorizationToWalletParams(auth);
+
+      type WalletKeyAuthorizationRpc = Parameters<typeof KeyAuthorization.fromRpc>[0];
+      const resp = (await selected.provider.request({
+        method: "wallet_authorizeAccessKey",
+        params: [params],
+      })) as { keyAuthorization: WalletKeyAuthorizationRpc; rootAddress: `0x${string}` };
+
+      // Convert the wallet's RPC-form keyAuthorization back to the canonical
+      // RLP encoding expected by Foundry's BrowserKeychainAuthRequest handler.
+      const decoded = KeyAuthorization.fromRpc(resp.keyAuthorization);
+
+      // Verify the returned root address matches what the server requested.
+      if (resp.rootAddress.toLowerCase() !== rootAccount.toLowerCase()) {
+        throw new Error(`Wallet authorized with root ${resp.rootAddress}, expected ${rootAccount}`);
+      }
+
+      // Verify the wallet signed the same payload the server queued.
+      const actualDigest = KeyAuthorization.hash(decoded);
+      if (actualDigest.toLowerCase() !== pendingKeychainAuth.digest.toLowerCase()) {
+        throw new Error(
+          `KeyAuthorization digest mismatch: expected ${pendingKeychainAuth.digest}, got ${actualDigest}`,
+        );
+      }
+
+      const signedHex = KeyAuthorization.serialize(decoded) as Hex;
+
+      const result = await api<ApiOk<null> | ApiErr>("/api/keychain-auth/response", "POST", {
+        id,
+        signedHex,
+        error: null,
+      });
+
+      if (isOk(result)) {
+        updateHistory(id, "keychain-auth", { status: "authorized", signedHex });
+      }
+    } catch (e: unknown) {
+      const msg = errMessage(e);
+      console.error("keychain auth failed:", msg);
+
+      try {
+        await api("/api/keychain-auth/response", "POST", { id, signedHex: null, error: msg });
+      } catch {}
+
+      updateHistory(id, "keychain-auth", { status: "failed", error: msg });
+    } finally {
+      setPendingKeychainAuth(null);
+      setIsSending(false);
+    }
+  };
+
+  // Reject the currently pending transaction, signing, or keychain-auth
+  // request without touching the wallet. Keeps the session alive.
   const rejectCurrent = useCallback(async () => {
+    if (isSending) return;
     if (pendingTx) {
       const id = pendingTx.id;
       const reason = "Rejected by user";
@@ -368,8 +448,26 @@ export function App() {
         error: reason,
       });
       setPendingSigning(null);
+      return;
     }
-  }, [pendingTx, pendingSigning, upsertHistory]);
+    if (pendingKeychainAuth) {
+      const { id, keyAuthorization, rootAccount } = pendingKeychainAuth;
+      const reason = "Rejected by user";
+      try {
+        await api("/api/keychain-auth/response", "POST", { id, signedHex: null, error: reason });
+      } catch {}
+      upsertHistory({
+        kind: "keychain-auth",
+        id,
+        ts: Date.now(),
+        keyAuthorization,
+        rootAccount,
+        status: "failed",
+        error: reason,
+      });
+      setPendingKeychainAuth(null);
+    }
+  }, [isSending, pendingTx, pendingSigning, pendingKeychainAuth, upsertHistory]);
 
   // --- effects ---------------------------------------------------------------
 
@@ -433,11 +531,11 @@ export function App() {
   }, [selected, confirmed, disconnect]);
 
   // Combined poller: while the session is alive, we are confirmed, and there
-  // is no in-flight request, look for the next transaction or signing
-  // request. Polling re-arms automatically as soon as
-  // `pendingTx`/`pendingSigning` are cleared by the completion handlers.
+  // is no in-flight request, look for the next transaction, signing, or
+  // keychain-auth request. Polling re-arms automatically as soon as the
+  // pending state is cleared by the completion handlers.
   useEffect(() => {
-    if (!confirmed || pendingTx || pendingSigning || !sessionAlive) return;
+    if (!confirmed || pendingTx || pendingSigning || pendingKeychainAuth || !sessionAlive) return;
 
     let active = true;
     const id = window.setInterval(async () => {
@@ -455,6 +553,14 @@ export function App() {
         const sig = await api<ApiOk<PendingSigning> | ApiErr>("/api/signing/request");
         if (isOk(sig)) {
           if (active) setPendingSigning(sig.data);
+          return;
+        }
+      } catch {}
+
+      try {
+        const auth = await api<ApiOk<PendingKeychainAuth> | ApiErr>("/api/keychain-auth/request");
+        if (isOk(auth)) {
+          if (active) setPendingKeychainAuth(auth.data);
         }
       } catch {}
     }, POLL_REQUEST_INTERVAL_MS);
@@ -463,7 +569,7 @@ export function App() {
       active = false;
       window.clearInterval(id);
     };
-  }, [confirmed, pendingTx, pendingSigning, sessionAlive]);
+  }, [confirmed, pendingTx, pendingSigning, pendingKeychainAuth, sessionAlive]);
 
   // Session liveness poller: detect when the BrowserSigner server is gone
   // (script finished, server stopped) so we can stop spamming the request
@@ -508,7 +614,7 @@ export function App() {
           </div>
         )}
 
-        {providers.length > 1 && (
+        {providers.length > 1 && sessionAlive && (
           <div className="wallet-selector">
             <label>
               <select
@@ -529,10 +635,15 @@ export function App() {
           </div>
         )}
 
-        {providers.length === 0 && <p>No wallets found.</p>}
+        {providers.length === 0 && sessionAlive && <p>No wallets found.</p>}
 
-        {selected && !account && (
-          <button type="button" className="wallet-connect" onClick={connect} disabled={confirmed}>
+        {selected && !account && sessionAlive && (
+          <button
+            type="button"
+            className="btn btn-primary wallet-connect"
+            onClick={connect}
+            disabled={confirmed}
+          >
             Connect Wallet
           </button>
         )}
@@ -540,7 +651,7 @@ export function App() {
         {selected && account && !confirmed && (
           <button
             type="button"
-            className="wallet-confirm"
+            className="btn btn-primary wallet-confirm"
             onClick={confirm}
             disabled={!account || chainId == null}
           >
@@ -622,14 +733,48 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
         {selected &&
           account &&
           confirmed &&
+          sessionAlive &&
           !pendingTx &&
           !pendingSigning &&
+          pendingKeychainAuth && (
+            <>
+              <div className="section-title">Authorize Access Key</div>
+              <div className="action-row">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={signCurrentKeychainAuth}
+                  disabled={isSending || !sessionAlive}
+                >
+                  Authorize
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => void rejectCurrent()}
+                  disabled={isSending || !sessionAlive}
+                >
+                  Reject
+                </button>
+              </div>
+              <div className="box">
+                <pre>{summarizeKeyAuthorization(pendingKeychainAuth)}</pre>
+              </div>
+            </>
+          )}
+
+        {selected &&
+          account &&
+          confirmed &&
+          !pendingTx &&
+          !pendingSigning &&
+          !pendingKeychainAuth &&
           history.length === 0 &&
           sessionAlive && (
             <>
               <div className="section-title">Waiting</div>
               <div className="box">
-                <pre>No pending transaction or signing request</pre>
+                <pre>No pending transaction, signing, or key authorization request</pre>
               </div>
             </>
           )}
@@ -709,34 +854,78 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
     );
   }
 
+  if (entry.kind === "sign") {
+    const summary =
+      entry.status === "signed"
+        ? `signed ${shortHash(entry.signature)}`
+        : entry.status === "failed"
+          ? `failed ${(entry.error ?? "").split("\n")[0]}`
+          : "pending";
+    return (
+      <div className={`history-entry sign status-${entry.status}${open ? " open" : ""}`}>
+        <button
+          type="button"
+          className="history-summary"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+        >
+          <span className="history-kind">sig</span>
+          <span className="history-status">{summary}</span>
+          <Chevron />
+        </button>
+        {open && (
+          <div className="history-details">
+            <div className="section-subtitle">Type</div>
+            <pre className="box">{entry.signType}</pre>
+            <div className="section-subtitle">Request</div>
+            <pre className="box">{renderMaybeParsedJSON(entry.request)}</pre>
+            {entry.signature && (
+              <>
+                <div className="section-subtitle">Signature</div>
+                <pre className="box">{entry.signature}</pre>
+              </>
+            )}
+            {entry.error && (
+              <>
+                <div className="section-subtitle">Error</div>
+                <pre className="box error">{entry.error}</pre>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // entry.kind === "keychain-auth"
   const summary =
-    entry.status === "signed"
-      ? `signed ${shortHash(entry.signature)}`
+    entry.status === "authorized"
+      ? `authorized ${shortHash(entry.signedHex)}`
       : entry.status === "failed"
         ? `failed ${(entry.error ?? "").split("\n")[0]}`
         : "pending";
   return (
-    <div className={`history-entry sign status-${entry.status}${open ? " open" : ""}`}>
+    <div className={`history-entry keychain-auth status-${entry.status}${open ? " open" : ""}`}>
       <button
         type="button"
         className="history-summary"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
       >
-        <span className="history-kind">sig</span>
+        <span className="history-kind">key</span>
         <span className="history-status">{summary}</span>
         <Chevron />
       </button>
       {open && (
         <div className="history-details">
-          <div className="section-subtitle">Type</div>
-          <pre className="box">{entry.signType}</pre>
-          <div className="section-subtitle">Request</div>
-          <pre className="box">{renderMaybeParsedJSON(entry.request)}</pre>
-          {entry.signature && (
+          <div className="section-subtitle">Key ID</div>
+          <pre className="box">{entry.keyAuthorization.keyId}</pre>
+          <div className="section-subtitle">Root Account</div>
+          <pre className="box">{entry.rootAccount}</pre>
+          {entry.signedHex && (
             <>
-              <div className="section-subtitle">Signature</div>
-              <pre className="box">{entry.signature}</pre>
+              <div className="section-subtitle">Signed Authorization</div>
+              <pre className="box">{entry.signedHex}</pre>
             </>
           )}
           {entry.error && (
@@ -774,6 +963,18 @@ function Chevron() {
 
 // --- utilities --------------------------------------------------------------
 
+function parseTempoChainId(chainId: `0x${string}`): bigint {
+  return chainId === "0x" ? 0n : BigInt(chainId);
+}
+
+function hexToSafeNumber(hex: `0x${string}`): number {
+  const n = BigInt(hex);
+  if (n > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error(`Value ${n} exceeds Number.MAX_SAFE_INTEGER`);
+  }
+  return Number(n);
+}
+
 function shortHash(h?: string): string {
   if (!h) return "";
   return h.length > 18 ? `${h.slice(0, 10)}…${h.slice(-8)}` : h;
@@ -786,4 +987,97 @@ function errMessage(e: unknown): string {
     typeof (e as { message?: unknown }).message === "string"
     ? (e as { message: string }).message
     : String(e);
+}
+
+// Convert a Tempo `KeyAuthorization` (as emitted by Foundry's
+// `BrowserKeychainAuthRequest`) into the parameter shape required by the
+// `wallet_authorizeAccessKey` RPC method (see `accounts/dist/core/zod/rpc`).
+function keyAuthorizationToWalletParams(auth: KeyAuthorizationDto): Record<string, unknown> {
+  const expiry =
+    auth.expiry == null || auth.expiry === "0x" || auth.expiry === "0x0"
+      ? 0
+      : hexToSafeNumber(auth.expiry as `0x${string}`);
+
+  const limits = (auth.limits ?? []).map((l) => ({
+    token: l.token,
+    limit: BigInt(l.limit),
+    ...(l.period ? { period: hexToSafeNumber(l.period as `0x${string}`) } : {}),
+  }));
+
+  // Flatten Tempo's nested `allowedCalls` into the SDK's flat `scopes`:
+  //   - CallScope without selectorRules -> `{ address: target }` (any selector)
+  //   - CallScope with selectorRules    -> one scope per rule
+  const scopes = (auth.allowedCalls ?? []).flatMap((cs) => {
+    if (!cs.selectorRules || cs.selectorRules.length === 0) {
+      return [{ address: cs.target }];
+    }
+    return cs.selectorRules.map((r) => ({
+      address: cs.target,
+      selector: r.selector,
+      ...(r.recipients && r.recipients.length > 0 ? { recipients: r.recipients } : {}),
+    }));
+  });
+
+  return {
+    address: auth.keyId,
+    chainId: parseTempoChainId(auth.chainId),
+    expiry,
+    keyType: auth.keyType,
+    limits,
+    ...(auth.allowedCalls ? { scopes } : {}),
+  };
+}
+
+// Render a human-readable summary of a pending Tempo `KeyAuthorization`
+// for the approval card.
+function summarizeKeyAuthorization(req: PendingKeychainAuth): string {
+  const { keyAuthorization: auth, rootAccount, digest } = req;
+  const lines: string[] = [];
+  lines.push(`Authorize key: ${auth.keyId}`);
+  lines.push(`On account:    ${rootAccount}`);
+  lines.push(`Chain ID:      ${parseTempoChainId(auth.chainId).toString()}`);
+  lines.push(`Key type:      ${auth.keyType}`);
+
+  if (auth.expiry == null || auth.expiry === "0x" || auth.expiry === "0x0") {
+    lines.push("Expiry:        never");
+  } else {
+    const ts = hexToSafeNumber(auth.expiry as `0x${string}`);
+    lines.push(`Expiry:        ${new Date(ts * 1000).toISOString()} (${ts})`);
+  }
+
+  if (auth.limits == null) {
+    lines.push("Spending:      unlimited");
+  } else if (auth.limits.length === 0) {
+    lines.push("Spending:      none (deny all)");
+  } else {
+    lines.push("Spending limits:");
+    for (const l of auth.limits) {
+      const period = l.period ? ` per ${BigInt(l.period).toString()}s` : "";
+      lines.push(`  - ${l.token}: ${BigInt(l.limit).toString()}${period}`);
+    }
+  }
+
+  if (auth.allowedCalls == null) {
+    lines.push("Allowed calls: any");
+  } else if (auth.allowedCalls.length === 0) {
+    lines.push("Allowed calls: none (deny all)");
+  } else {
+    lines.push("Allowed calls:");
+    for (const cs of auth.allowedCalls) {
+      if (!cs.selectorRules || cs.selectorRules.length === 0) {
+        lines.push(`  - ${cs.target}: any selector`);
+      } else {
+        for (const r of cs.selectorRules) {
+          const recipients =
+            r.recipients && r.recipients.length > 0 ? ` to [${r.recipients.join(", ")}]` : "";
+          lines.push(`  - ${cs.target}: ${r.selector}${recipients}`);
+        }
+      }
+    }
+  }
+
+  lines.push("");
+  lines.push(`Digest: ${digest}`);
+
+  return lines.join("\n");
 }
