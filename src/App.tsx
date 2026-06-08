@@ -998,7 +998,7 @@ function keyAuthorizationToWalletParams(auth: KeyAuthorizationDto): Record<strin
       ? 0
       : hexToSafeNumber(auth.expiry as `0x${string}`);
 
-  const limits = (auth.limits ?? []).map((l) => ({
+  const limits = auth.limits?.map((l) => ({
     token: l.token,
     limit: BigInt(l.limit),
     ...(l.period ? { period: hexToSafeNumber(l.period as `0x${string}`) } : {}),
@@ -1023,7 +1023,7 @@ function keyAuthorizationToWalletParams(auth: KeyAuthorizationDto): Record<strin
     chainId: parseTempoChainId(auth.chainId),
     expiry,
     keyType: auth.keyType,
-    limits,
+    ...(auth.limits != null ? { limits } : {}),
     ...(auth.allowedCalls ? { scopes } : {}),
   };
 }

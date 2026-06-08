@@ -155,5 +155,4 @@ export type PendingKeychainAuth = {
   rootAccount: `0x${string}`;
   keyAuthorization: KeyAuthorization;
   digest: `0x${string}`;
-  preferredSignatureType?: SignatureType;
 };
