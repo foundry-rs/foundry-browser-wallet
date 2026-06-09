@@ -1023,8 +1023,11 @@ function keyAuthorizationToWalletParams(auth: KeyAuthorizationDto): Record<strin
     chainId: parseTempoChainId(auth.chainId),
     expiry,
     keyType: auth.keyType,
+    ...(auth.account != null ? { account: auth.account } : {}),
+    ...(auth.isAdmin != null ? { isAdmin: auth.isAdmin } : {}),
     ...(auth.limits != null ? { limits } : {}),
     ...(auth.allowedCalls ? { scopes } : {}),
+    ...(auth.witness != null ? { witness: auth.witness } : {}),
   };
 }
 
@@ -1035,8 +1038,14 @@ function summarizeKeyAuthorization(req: PendingKeychainAuth): string {
   const lines: string[] = [];
   lines.push(`Authorize key: ${auth.keyId}`);
   lines.push(`On account:    ${rootAccount}`);
+  if (auth.account != null) {
+    lines.push(`Bound account: ${auth.account}`);
+  }
   lines.push(`Chain ID:      ${parseTempoChainId(auth.chainId).toString()}`);
   lines.push(`Key type:      ${auth.keyType}`);
+  if (auth.isAdmin != null) {
+    lines.push(`Admin key:     ${auth.isAdmin ? "yes" : "no"}`);
+  }
 
   if (auth.expiry == null || auth.expiry === "0x" || auth.expiry === "0x0") {
     lines.push("Expiry:        never");
@@ -1074,6 +1083,10 @@ function summarizeKeyAuthorization(req: PendingKeychainAuth): string {
         }
       }
     }
+  }
+
+  if (auth.witness != null) {
+    lines.push(`Witness:       ${auth.witness}`);
   }
 
   lines.push("");
