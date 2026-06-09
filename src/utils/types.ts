@@ -142,12 +142,15 @@ export type KeyAuthorizationCallScope = {
 };
 
 export type KeyAuthorization = {
+  account?: `0x${string}` | null;
   chainId: `0x${string}`;
+  isAdmin?: boolean | null;
   keyType: SignatureType;
   keyId: `0x${string}`;
   expiry?: `0x${string}` | null;
   limits?: KeyAuthorizationLimit[] | null;
   allowedCalls?: KeyAuthorizationCallScope[] | null;
+  witness?: `0x${string}` | null;
 };
 
 export type PendingKeychainAuth = {
