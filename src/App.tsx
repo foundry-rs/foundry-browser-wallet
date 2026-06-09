@@ -359,6 +359,7 @@ export function App() {
           `Connected wallet ${account} does not match requested root account ${rootAccount}`,
         );
       }
+      rejectUnsupportedKeyAuthorization(auth);
 
       const params = keyAuthorizationToWalletParams(auth);
 
@@ -987,6 +988,22 @@ function errMessage(e: unknown): string {
     typeof (e as { message?: unknown }).message === "string"
     ? (e as { message: string }).message
     : String(e);
+}
+
+function rejectUnsupportedKeyAuthorization(auth: KeyAuthorizationDto) {
+  const unsupported = [
+    auth.account != null ? "--account" : null,
+    auth.isAdmin != null ? "--admin" : null,
+    auth.witness != null ? "--witness" : null,
+  ].filter((flag) => flag !== null);
+
+  if (unsupported.length > 0) {
+    throw new Error(
+      `Browser key authorization signing does not support ${unsupported.join(
+        ", ",
+      )} yet; the accounts SDK wallet_authorizeAccessKey schema would drop these fields.`,
+    );
+  }
 }
 
 // Convert a Tempo `KeyAuthorization` (as emitted by Foundry's
