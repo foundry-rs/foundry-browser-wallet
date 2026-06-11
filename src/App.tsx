@@ -23,9 +23,9 @@ import type {
   EIP6963ProviderInfo,
   HistoryEntry,
   KeyAuthorization as KeyAuthorizationDto,
-  KeychainAuthHistoryEntry,
+  KeyAuthorizationHistoryEntry,
   PendingAny,
-  PendingKeychainAuth,
+  PendingKeyAuthorization,
   PendingSigning,
   SessionInfo,
   SignHistoryEntry,
@@ -55,7 +55,8 @@ export function App() {
 
   const [pendingTx, setPendingTx] = useState<PendingAny | null>(null);
   const [pendingSigning, setPendingSigning] = useState<PendingSigning | null>(null);
-  const [pendingKeychainAuth, setPendingKeychainAuth] = useState<PendingKeychainAuth | null>(null);
+  const [pendingKeyAuthorization, setPendingKeyAuthorization] =
+    useState<PendingKeyAuthorization | null>(null);
   const [isSending, setIsSending] = useState<boolean>(false);
 
   // In-session history of every signed transaction, message, and key
@@ -139,7 +140,7 @@ export function App() {
 
     setPendingTx(null);
     setPendingSigning(null);
-    setPendingKeychainAuth(null);
+    setPendingKeyAuthorization(null);
     setAccount(undefined);
     setChainId(undefined);
     setChain(undefined);
@@ -336,14 +337,14 @@ export function App() {
   // `wallet_authorizeAccessKey` on the connected wallet, then RLP-encodes
   // the returned `keyAuthorization` so the Foundry server can decode it as
   // a `SignedKeyAuthorization`.
-  const signCurrentKeychainAuth = async () => {
-    if (!selected || !pendingKeychainAuth || !sessionAlive || isSending) return;
+  const signCurrentKeyAuthorization = async () => {
+    if (!selected || !pendingKeyAuthorization || !sessionAlive || isSending) return;
     setIsSending(true);
 
-    const { id, keyAuthorization: auth, rootAccount } = pendingKeychainAuth;
+    const { id, keyAuthorization: auth, rootAccount } = pendingKeyAuthorization;
 
-    const placeholder: KeychainAuthHistoryEntry = {
-      kind: "keychain-auth",
+    const placeholder: KeyAuthorizationHistoryEntry = {
+      kind: "key-authorization",
       id,
       ts: Date.now(),
       keyAuthorization: auth,
@@ -369,7 +370,7 @@ export function App() {
       })) as { keyAuthorization: WalletKeyAuthorizationRpc; rootAddress: `0x${string}` };
 
       // Convert the wallet's RPC-form keyAuthorization back to the canonical
-      // RLP encoding expected by Foundry's BrowserKeychainAuthRequest handler.
+      // RLP encoding expected by Foundry's BrowserKeyAuthorizationRequest handler.
       const decoded = KeyAuthorization.fromRpc(resp.keyAuthorization);
 
       // Verify the returned root address matches what the server requested.
@@ -379,39 +380,39 @@ export function App() {
 
       // Verify the wallet signed the same payload the server queued.
       const actualDigest = KeyAuthorization.hash(decoded);
-      if (actualDigest.toLowerCase() !== pendingKeychainAuth.digest.toLowerCase()) {
+      if (actualDigest.toLowerCase() !== pendingKeyAuthorization.digest.toLowerCase()) {
         throw new Error(
-          `KeyAuthorization digest mismatch: expected ${pendingKeychainAuth.digest}, got ${actualDigest}`,
+          `KeyAuthorization digest mismatch: expected ${pendingKeyAuthorization.digest}, got ${actualDigest}`,
         );
       }
 
       const signedHex = KeyAuthorization.serialize(decoded) as Hex;
 
-      const result = await api<ApiOk<null> | ApiErr>("/api/keychain-auth/response", "POST", {
+      const result = await api<ApiOk<null> | ApiErr>("/api/key-authorization/response", "POST", {
         id,
         signedHex,
         error: null,
       });
 
       if (isOk(result)) {
-        updateHistory(id, "keychain-auth", { status: "authorized", signedHex });
+        updateHistory(id, "key-authorization", { status: "authorized", signedHex });
       }
     } catch (e: unknown) {
       const msg = errMessage(e);
-      console.error("keychain auth failed:", msg);
+      console.error("key authorization failed:", msg);
 
       try {
-        await api("/api/keychain-auth/response", "POST", { id, signedHex: null, error: msg });
+        await api("/api/key-authorization/response", "POST", { id, signedHex: null, error: msg });
       } catch {}
 
-      updateHistory(id, "keychain-auth", { status: "failed", error: msg });
+      updateHistory(id, "key-authorization", { status: "failed", error: msg });
     } finally {
-      setPendingKeychainAuth(null);
+      setPendingKeyAuthorization(null);
       setIsSending(false);
     }
   };
 
-  // Reject the currently pending transaction, signing, or keychain-auth
+  // Reject the currently pending transaction, signing, or key-authorization
   // request without touching the wallet. Keeps the session alive.
   const rejectCurrent = useCallback(async () => {
     if (isSending) return;
@@ -450,14 +451,18 @@ export function App() {
       setPendingSigning(null);
       return;
     }
-    if (pendingKeychainAuth) {
-      const { id, keyAuthorization, rootAccount } = pendingKeychainAuth;
+    if (pendingKeyAuthorization) {
+      const { id, keyAuthorization, rootAccount } = pendingKeyAuthorization;
       const reason = "Rejected by user";
       try {
-        await api("/api/keychain-auth/response", "POST", { id, signedHex: null, error: reason });
+        await api("/api/key-authorization/response", "POST", {
+          id,
+          signedHex: null,
+          error: reason,
+        });
       } catch {}
       upsertHistory({
-        kind: "keychain-auth",
+        kind: "key-authorization",
         id,
         ts: Date.now(),
         keyAuthorization,
@@ -465,9 +470,9 @@ export function App() {
         status: "failed",
         error: reason,
       });
-      setPendingKeychainAuth(null);
+      setPendingKeyAuthorization(null);
     }
-  }, [isSending, pendingTx, pendingSigning, pendingKeychainAuth, upsertHistory]);
+  }, [isSending, pendingTx, pendingSigning, pendingKeyAuthorization, upsertHistory]);
 
   // --- effects ---------------------------------------------------------------
 
@@ -532,10 +537,11 @@ export function App() {
 
   // Combined poller: while the session is alive, we are confirmed, and there
   // is no in-flight request, look for the next transaction, signing, or
-  // keychain-auth request. Polling re-arms automatically as soon as the
+  // key-authorization request. Polling re-arms automatically as soon as the
   // pending state is cleared by the completion handlers.
   useEffect(() => {
-    if (!confirmed || pendingTx || pendingSigning || pendingKeychainAuth || !sessionAlive) return;
+    if (!confirmed || pendingTx || pendingSigning || pendingKeyAuthorization || !sessionAlive)
+      return;
 
     let active = true;
     const id = window.setInterval(async () => {
@@ -558,9 +564,11 @@ export function App() {
       } catch {}
 
       try {
-        const auth = await api<ApiOk<PendingKeychainAuth> | ApiErr>("/api/keychain-auth/request");
+        const auth = await api<ApiOk<PendingKeyAuthorization> | ApiErr>(
+          "/api/key-authorization/request",
+        );
         if (isOk(auth)) {
-          if (active) setPendingKeychainAuth(auth.data);
+          if (active) setPendingKeyAuthorization(auth.data);
         }
       } catch {}
     }, POLL_REQUEST_INTERVAL_MS);
@@ -569,7 +577,7 @@ export function App() {
       active = false;
       window.clearInterval(id);
     };
-  }, [confirmed, pendingTx, pendingSigning, pendingKeychainAuth, sessionAlive]);
+  }, [confirmed, pendingTx, pendingSigning, pendingKeyAuthorization, sessionAlive]);
 
   // Session liveness poller: detect when the BrowserSigner server is gone
   // (script finished, server stopped) so we can stop spamming the request
@@ -736,14 +744,14 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           sessionAlive &&
           !pendingTx &&
           !pendingSigning &&
-          pendingKeychainAuth && (
+          pendingKeyAuthorization && (
             <>
               <div className="section-title">Authorize Access Key</div>
               <div className="action-row">
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={signCurrentKeychainAuth}
+                  onClick={signCurrentKeyAuthorization}
                   disabled={isSending || !sessionAlive}
                 >
                   Authorize
@@ -758,7 +766,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
                 </button>
               </div>
               <div className="box">
-                <pre>{summarizeKeyAuthorization(pendingKeychainAuth)}</pre>
+                <pre>{summarizeKeyAuthorization(pendingKeyAuthorization)}</pre>
               </div>
             </>
           )}
@@ -768,7 +776,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           confirmed &&
           !pendingTx &&
           !pendingSigning &&
-          !pendingKeychainAuth &&
+          !pendingKeyAuthorization &&
           history.length === 0 &&
           sessionAlive && (
             <>
@@ -897,7 +905,7 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
     );
   }
 
-  // entry.kind === "keychain-auth"
+  // entry.kind === "key-authorization"
   const summary =
     entry.status === "authorized"
       ? `authorized ${shortHash(entry.signedHex)}`
@@ -905,7 +913,7 @@ function HistoryCard({ entry }: { entry: HistoryEntry }) {
         ? `failed ${(entry.error ?? "").split("\n")[0]}`
         : "pending";
   return (
-    <div className={`history-entry keychain-auth status-${entry.status}${open ? " open" : ""}`}>
+    <div className={`history-entry key-authorization status-${entry.status}${open ? " open" : ""}`}>
       <button
         type="button"
         className="history-summary"
@@ -990,7 +998,7 @@ function errMessage(e: unknown): string {
 }
 
 // Convert a Tempo `KeyAuthorization` (as emitted by Foundry's
-// `BrowserKeychainAuthRequest`) into the parameter shape required by the
+// `BrowserKeyAuthorizationRequest`) into the parameter shape required by the
 // `wallet_authorizeAccessKey` RPC method (see `accounts/dist/core/zod/rpc`).
 function keyAuthorizationToWalletParams(auth: KeyAuthorizationDto): Record<string, unknown> {
   const expiry =
@@ -1030,7 +1038,7 @@ function keyAuthorizationToWalletParams(auth: KeyAuthorizationDto): Record<strin
 
 // Render a human-readable summary of a pending Tempo `KeyAuthorization`
 // for the approval card.
-function summarizeKeyAuthorization(req: PendingKeychainAuth): string {
+function summarizeKeyAuthorization(req: PendingKeyAuthorization): string {
   const { keyAuthorization: auth, rootAccount, digest } = req;
   const lines: string[] = [];
   lines.push(`Authorize key: ${auth.keyId}`);
