@@ -82,11 +82,11 @@ export type TxStatus = "pending" | "sent" | "mined" | "failed";
 // - `failed`:  the wallet rejected or signing failed
 export type SignStatus = "pending" | "signed" | "failed";
 
-// Status of a keychain authorization in the in-session history.
+// Status of a key authorization in the in-session history.
 // - `pending`:   user is being prompted to authorize
 // - `authorized`: wallet returned the signed key authorization
 // - `failed`:    the wallet rejected or authorization failed
-export type KeychainAuthStatus = "pending" | "authorized" | "failed";
+export type KeyAuthorizationStatus = "pending" | "authorized" | "failed";
 
 export type TxHistoryEntry = {
   kind: "tx";
@@ -110,18 +110,18 @@ export type SignHistoryEntry = {
   error?: string;
 };
 
-export type KeychainAuthHistoryEntry = {
-  kind: "keychain-auth";
+export type KeyAuthorizationHistoryEntry = {
+  kind: "key-authorization";
   id: string;
   ts: number;
   keyAuthorization: KeyAuthorization;
   rootAccount: `0x${string}`;
-  status: KeychainAuthStatus;
+  status: KeyAuthorizationStatus;
   signedHex?: Hex;
   error?: string;
 };
 
-export type HistoryEntry = TxHistoryEntry | SignHistoryEntry | KeychainAuthHistoryEntry;
+export type HistoryEntry = TxHistoryEntry | SignHistoryEntry | KeyAuthorizationHistoryEntry;
 
 // --- Tempo KeyAuthorization types -------------------------------------------
 
@@ -150,7 +150,7 @@ export type KeyAuthorization = {
   allowedCalls?: KeyAuthorizationCallScope[] | null;
 };
 
-export type PendingKeychainAuth = {
+export type PendingKeyAuthorization = {
   id: string;
   rootAccount: `0x${string}`;
   keyAuthorization: KeyAuthorization;
