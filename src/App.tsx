@@ -163,39 +163,50 @@ export function App() {
     const { id, chainId: targetChainId } = pendingChainSwitch;
     expectedChainSwitchRef.current = targetChainId;
 
+    let switchedChainId: number | undefined;
+
     try {
-      await selected.provider.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: `0x${targetChainId.toString(16)}` }],
-      });
-
-      const raw = await selected.provider.request<string>({ method: "eth_chainId" });
-      const switchedChainId = parseChainId(raw);
-      if (switchedChainId == null) {
-        throw new Error(`Wallet returned invalid chain ID ${String(raw)}`);
-      }
-      if (switchedChainId !== targetChainId) {
-        throw new Error(
-          `Wallet switched to chain ID ${switchedChainId}, expected ${targetChainId}`,
-        );
-      }
-
-      applyChainId(raw, setChainId, setChain);
-      recentChainSwitchRef.current = {
-        chainId: switchedChainId,
-        until: Date.now() + CHAIN_SWITCH_EVENT_GRACE_MS,
-      };
-
-      await api("/api/chain/response", "POST", {
-        id,
-        chainId: switchedChainId,
-        error: null,
-      });
-    } catch (e: unknown) {
-      const msg = errMessage(e);
       try {
-        await api("/api/chain/response", "POST", { id, chainId: null, error: msg });
-      } catch {}
+        await selected.provider.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: `0x${targetChainId.toString(16)}` }],
+        });
+
+        const raw = await selected.provider.request<string>({ method: "eth_chainId" });
+        switchedChainId = parseChainId(raw);
+        if (switchedChainId == null) {
+          throw new Error(`Wallet returned invalid chain ID ${String(raw)}`);
+        }
+        if (switchedChainId !== targetChainId) {
+          throw new Error(
+            `Wallet switched to chain ID ${switchedChainId}, expected ${targetChainId}`,
+          );
+        }
+
+        applyChainId(raw, setChainId, setChain);
+        recentChainSwitchRef.current = {
+          chainId: switchedChainId,
+          until: Date.now() + CHAIN_SWITCH_EVENT_GRACE_MS,
+        };
+      } catch (e: unknown) {
+        const msg = errMessage(e);
+        try {
+          await api("/api/chain/response", "POST", { id, chainId: null, error: msg });
+        } catch {}
+        return;
+      }
+
+      try {
+        await api("/api/chain/response", "POST", {
+          id,
+          chainId: switchedChainId,
+          error: null,
+        });
+      } catch (e: unknown) {
+        // Wallet is already on the target chain. Do not convert a response
+        // reporting failure into a chain-switch failure.
+        console.warn("chain switch response post failed after successful switch:", errMessage(e));
+      }
     } finally {
       expectedChainSwitchRef.current = null;
       setPendingChainSwitch(null);
