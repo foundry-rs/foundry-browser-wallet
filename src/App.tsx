@@ -10,6 +10,7 @@ import {
   api,
   applyChainId,
   isOk,
+  parseChainId,
   renderJSON,
   renderMaybeParsedJSON,
   toBig,
@@ -25,6 +26,7 @@ import type {
   KeyAuthorization as KeyAuthorizationDto,
   KeyAuthorizationHistoryEntry,
   PendingAny,
+  PendingChainSwitch,
   PendingKeyAuthorization,
   PendingSigning,
   SessionInfo,
@@ -34,6 +36,7 @@ import type {
 
 const POLL_REQUEST_INTERVAL_MS = 1000;
 const POLL_SESSION_INTERVAL_MS = 3000;
+const CHAIN_SWITCH_EVENT_GRACE_MS = 5000;
 
 export function App() {
   useEffect(() => {
@@ -54,6 +57,7 @@ export function App() {
   const [confirmed, setConfirmed] = useState<boolean>(false);
 
   const [pendingTx, setPendingTx] = useState<PendingAny | null>(null);
+  const [pendingChainSwitch, setPendingChainSwitch] = useState<PendingChainSwitch | null>(null);
   const [pendingSigning, setPendingSigning] = useState<PendingSigning | null>(null);
   const [pendingKeyAuthorization, setPendingKeyAuthorization] =
     useState<PendingKeyAuthorization | null>(null);
@@ -67,6 +71,8 @@ export function App() {
   const [sessionAlive, setSessionAlive] = useState<boolean>(true);
 
   const prevSelectedUuidRef = useRef<string | null>(null);
+  const expectedChainSwitchRef = useRef<number | null>(null);
+  const recentChainSwitchRef = useRef<{ chainId: number; until: number } | null>(null);
 
   // --- helpers ---------------------------------------------------------------
 
@@ -139,6 +145,7 @@ export function App() {
     } catch {}
 
     setPendingTx(null);
+    setPendingChainSwitch(null);
     setPendingSigning(null);
     setPendingKeyAuthorization(null);
     setAccount(undefined);
@@ -148,6 +155,53 @@ export function App() {
   }, []);
 
   // --- request handlers ------------------------------------------------------
+
+  const switchCurrentChain = useCallback(async () => {
+    if (!selected || !pendingChainSwitch || !sessionAlive || isSending) return;
+    setIsSending(true);
+
+    const { id, chainId: targetChainId } = pendingChainSwitch;
+    expectedChainSwitchRef.current = targetChainId;
+
+    try {
+      await selected.provider.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: `0x${targetChainId.toString(16)}` }],
+      });
+
+      const raw = await selected.provider.request<string>({ method: "eth_chainId" });
+      const switchedChainId = parseChainId(raw);
+      if (switchedChainId == null) {
+        throw new Error(`Wallet returned invalid chain ID ${String(raw)}`);
+      }
+      if (switchedChainId !== targetChainId) {
+        throw new Error(
+          `Wallet switched to chain ID ${switchedChainId}, expected ${targetChainId}`,
+        );
+      }
+
+      applyChainId(raw, setChainId, setChain);
+      recentChainSwitchRef.current = {
+        chainId: switchedChainId,
+        until: Date.now() + CHAIN_SWITCH_EVENT_GRACE_MS,
+      };
+
+      await api("/api/chain/response", "POST", {
+        id,
+        chainId: switchedChainId,
+        error: null,
+      });
+    } catch (e: unknown) {
+      const msg = errMessage(e);
+      try {
+        await api("/api/chain/response", "POST", { id, chainId: null, error: msg });
+      } catch {}
+    } finally {
+      expectedChainSwitchRef.current = null;
+      setPendingChainSwitch(null);
+      setIsSending(false);
+    }
+  }, [isSending, pendingChainSwitch, selected, sessionAlive]);
 
   // Sign and send the current pending transaction. Clears `pendingTx`
   // immediately after the wallet returns a hash so the poller can pick up
@@ -512,15 +566,45 @@ export function App() {
   useEffect(() => {
     if (!selected) return;
 
+    const isRecentExpectedChainSwitch = (nextChainId?: number) => {
+      const recent = recentChainSwitchRef.current;
+      if (!recent) return false;
+      if (Date.now() > recent.until) {
+        recentChainSwitchRef.current = null;
+        return false;
+      }
+      return nextChainId == null || nextChainId === recent.chainId;
+    };
+
     const onAccountsChanged = (accounts: readonly string[]) => {
+      const nextAccount = (accounts[0] as Address) ?? undefined;
       if (confirmed) {
+        if (
+          !nextAccount &&
+          (expectedChainSwitchRef.current != null || isRecentExpectedChainSwitch())
+        ) {
+          return;
+        }
+        if (nextAccount && account && nextAccount.toLowerCase() === account.toLowerCase()) {
+          setAccount(nextAccount);
+          return;
+        }
         void disconnect();
         return;
       }
-      setAccount((accounts[0] as Address) ?? undefined);
+      setAccount(nextAccount);
     };
     const onChainChanged = (raw: unknown) => {
       if (confirmed) {
+        const nextChainId = parseChainId(raw);
+        if (
+          nextChainId != null &&
+          (nextChainId === expectedChainSwitchRef.current ||
+            isRecentExpectedChainSwitch(nextChainId))
+        ) {
+          applyChainId(raw, setChainId, setChain);
+          return;
+        }
         void disconnect();
         return;
       }
@@ -533,19 +617,39 @@ export function App() {
       selected.provider.removeListener?.("accountsChanged", onAccountsChanged);
       selected.provider.removeListener?.("chainChanged", onChainChanged);
     };
-  }, [selected, confirmed, disconnect]);
+  }, [selected, confirmed, account, disconnect]);
+
+  useEffect(() => {
+    if (!pendingChainSwitch || isSending) return;
+    void switchCurrentChain();
+  }, [pendingChainSwitch, isSending, switchCurrentChain]);
 
   // Combined poller: while the session is alive, we are confirmed, and there
   // is no in-flight request, look for the next transaction, signing, or
   // key-authorization request. Polling re-arms automatically as soon as the
   // pending state is cleared by the completion handlers.
   useEffect(() => {
-    if (!confirmed || pendingTx || pendingSigning || pendingKeyAuthorization || !sessionAlive)
+    if (
+      !confirmed ||
+      pendingTx ||
+      pendingChainSwitch ||
+      pendingSigning ||
+      pendingKeyAuthorization ||
+      !sessionAlive
+    )
       return;
 
     let active = true;
     const id = window.setInterval(async () => {
       if (!active) return;
+
+      try {
+        const chain = await api<ApiOk<PendingChainSwitch> | ApiErr>("/api/chain/request");
+        if (isOk(chain)) {
+          if (active) setPendingChainSwitch(chain.data);
+          return;
+        }
+      } catch {}
 
       try {
         const tx = await api<ApiOk<PendingAny> | ApiErr>("/api/transaction/request");
@@ -577,7 +681,14 @@ export function App() {
       active = false;
       window.clearInterval(id);
     };
-  }, [confirmed, pendingTx, pendingSigning, pendingKeyAuthorization, sessionAlive]);
+  }, [
+    confirmed,
+    pendingTx,
+    pendingChainSwitch,
+    pendingSigning,
+    pendingKeyAuthorization,
+    sessionAlive,
+  ]);
 
   // Session liveness poller: detect when the BrowserSigner server is gone
   // (script finished, server stopped) so we can stop spamming the request
@@ -775,6 +886,7 @@ rpc:     ${chain?.rpcUrls?.default?.http?.[0] ?? chain?.rpcUrls?.public?.http?.[
           account &&
           confirmed &&
           !pendingTx &&
+          !pendingChainSwitch &&
           !pendingSigning &&
           !pendingKeyAuthorization &&
           history.length === 0 &&
