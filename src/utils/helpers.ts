@@ -9,7 +9,7 @@ export const ALL_CHAINS: readonly Chain[] = Object.freeze(Object.values(chains) 
 
 export const getChainById = (id: number) => ALL_CHAINS.find((c) => c.id === id);
 
-const parseChainId = (input: unknown): number | undefined => {
+export const parseChainId = (input: unknown): number | undefined => {
   if (typeof input === "number") return Number.isFinite(input) ? input : undefined;
   if (typeof input !== "string") return undefined;
   const s = input.trim();

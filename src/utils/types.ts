@@ -62,6 +62,11 @@ export type ApiErr = { status: string; message?: string };
 
 export type PendingAny = Record<string, unknown> & { id: string; request: TransactionRequest };
 
+export type PendingChainSwitch = {
+  id: string;
+  chainId: number;
+};
+
 // Mirrors the `SessionInfo` type returned by `GET /api/session` from the
 // Rust BrowserWalletServer.
 export type SessionInfo = {
