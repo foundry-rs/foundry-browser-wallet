@@ -1,5 +1,11 @@
 # Browser wallet
 
+> [!IMPORTANT]
+> This repository is deprecated. The browser wallet is now maintained as part of
+> [`foundry-wallets`](https://github.com/foundry-rs/foundry-core/tree/main/crates/wallets/src/wallet_browser/app/src).
+> Please open new issues and pull requests in
+> [`foundry-rs/foundry-core`](https://github.com/foundry-rs/foundry-core).
+
 Interface for interacting with Foundry from the browser.
 
 ### Development
